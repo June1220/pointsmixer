@@ -10,7 +10,7 @@ import {
   carrierInfo,
 } from "../data/awardCharts";
 import { greatCircleMiles } from "../data/airportCoords";
-import { awardPegCents, defaultAwardPegCents } from "../data/transferPartners";
+import { awardPegCents, getAwardPeg, getAwardPegRange } from "../data/transferPartners";
 import { getDynamicRangeScaled, classifyVsRange } from "../data/dynamicRanges";
 
 // Normalize cabin string to: economy | premium | business | first
@@ -72,17 +72,22 @@ export function estimateAwardCost({ program, origin, destination, cabin, cashPri
       const result = zoneChartMiles(program, fromRegion, toRegion, cab);
       if (result != null) {
         const { miles: rawMiles, premiumFallback } = result;
+        const dataConf = programMeta[program]?.dataConfidence ?? "crossreferenced";
         const premNote = premiumFallback
           ? ` Note: ${program} doesn't publish a premium economy saver level — this is an estimate (~1.3× economy). Actual cost may differ.`
+          : "";
+        const partnerNote = programMeta[program]?.partnerNote
+          ? ` ${programMeta[program].partnerNote}`
           : "";
         return {
           points: tidy(rawMiles),
           basis: "zone-chart",
-          confidence: premiumFallback ? "medium" : "high",
+          confidence: premiumFallback ? "medium" : (dataConf === "official" ? "high" : "medium"),
+          dataConfidence: dataConf,
           rtOnly,
           note: rtOnly
-            ? `Based on ${program}'s published partner ${cab} zone award for ${fromRegion} ↔ ${toRegion}. IMPORTANT: ${program} requires round-trip bookings for partner awards — this is the round-trip total.${premNote}`
-            : `Based on ${program}'s published partner ${cab} saver level for ${fromRegion} ↔ ${toRegion}.${premNote}`,
+            ? `Based on ${program}'s published partner ${cab} zone award for ${fromRegion} ↔ ${toRegion}. IMPORTANT: ${program} requires round-trip bookings for partner awards — this is the round-trip total.${premNote}${partnerNote}`
+            : `Based on ${program}'s published partner ${cab} saver level for ${fromRegion} ↔ ${toRegion}.${premNote}${partnerNote}`,
           source: "awardtravelfinder.com/award-charts — verified 2026-06-05",
         };
       }
@@ -111,16 +116,23 @@ export function estimateAwardCost({ program, origin, destination, cabin, cashPri
   // ── Class C / fallback: cash-based heuristic ──────────────────────────────
   const cash = Math.max(0, Number(cashPrice) || 0);
   if (cash > 0) {
-    const peg = awardPegCents[program] ?? defaultAwardPegCents;
+    const pegRange = getAwardPegRange(program);
     const cabinSkew = { economy: 1, premium: 1.05, business: 1.1, first: 1.15 }[cab] || 1;
-    const points = (cash * 100) / (peg / cabinSkew);
+    const toPoints = (peg) => tidy((cash * 100) / (peg / cabinSkew));
+    const pegEntry = awardPegCents[program];
+    const hasSamples = (pegEntry?.sampleCount ?? 0) > 0;
     return {
-      points: tidy(points),
+      points: toPoints(pegRange.mid),
+      pointsRange: {
+        low:  toPoints(pegRange.high), // high peg → fewer miles (optimistic)
+        high: toPoints(pegRange.low),  // low peg  → more miles (pessimistic)
+      },
       basis: "heuristic",
       confidence: "low",
+      dataConfidence: hasSamples ? "crossreferenced" : "estimate",
       rtOnly: false,
-      note: `${program} prices awards dynamically — no published saver chart. Rough estimate from the cash fare at ~${peg.toFixed(2)}¢/mile.`,
-      source: null,
+      note: `${program} prices awards dynamically — no published saver chart. Rough estimate from the cash fare at ~${pegRange.mid.toFixed(2)}¢/mile${hasSamples ? ` (from ${pegEntry.sampleCount} sampled routes)` : " (editorial estimate — no empirical samples yet)"}.`,
+      source: hasSamples ? `${pegEntry.sampleCount} route samples, ${pegEntry.samplePeriod}` : null,
     };
   }
 

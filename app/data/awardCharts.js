@@ -102,46 +102,53 @@ export function pairKey(a, b) {
 
 // ─────────────────────────────────────────────────────────────────────────────
 // PROGRAM CLASSIFICATION
-// chartClass: "zone" (Class A) | "distance" (Class B) | null (Class C dynamic)
-// rtOnly: true = program only allows round-trip partner awards (affects the
-//         baseline display — cannot quote a one-way saver level).
+//
+// chartClass:       "zone" | "distance" | null — the program's own redemption chart
+//                   (what it costs to spend THIS program's miles on any flight).
+// rtOnly:           true = program only allows round-trip partner awards.
+// dataConfidence:   "official"       — chart from the airline/bank's own published page
+//                   "crossreferenced"— verified against 2+ independent third-party sources
+//                   "estimate"       — approximated from partial or aggregated data
+// ownMetalDynamic:  true = the airline's OWN flights on ITS OWN program are dynamic
+//                   even though partner programs may book those same seats at a fixed rate.
+//                   Example: Aeroplan chart covers United/Lufthansa/etc. at fixed rates,
+//                   but United miles on United flights are dynamic.
+// partnerNote:      Human-readable hint about the own-metal vs partner distinction.
 // ─────────────────────────────────────────────────────────────────────────────
 export const programMeta = {
   // CLASS A — zone-based fixed charts
-  "ANA":           { chartClass: "zone",     rtOnly: true  }, // RT required for partner awards
-  "Aeroplan":      { chartClass: "zone",     rtOnly: false },
-  "Avianca":       { chartClass: "zone",     rtOnly: false },
-  "Alaska Airlines":{ chartClass: "zone",    rtOnly: false }, // per-partner table, not true zones
-  "Singapore":     { chartClass: "zone",     rtOnly: false },
-  "Qantas":        { chartClass: "zone",     rtOnly: false },
-  "Japan Airlines":{ chartClass: "zone",     rtOnly: false },
-  // CLASS A — zone-based fixed charts (continued)
-  "TAP Air Portugal":{ chartClass: "zone",    rtOnly: false }, // Star Alliance partner chart
-  "Thai Airways":  { chartClass: "zone",      rtOnly: false }, // Royal Orchid Plus zone chart
-  "Korean Air":    { chartClass: "zone",      rtOnly: false }, // SKYPASS zone chart (SkyTeam)
+  "ANA":           { chartClass: "zone",     rtOnly: true,  dataConfidence: "official",        sourceUrl: "https://www.ana.co.jp/en/us/amc/partner-flight-awards/",                                                          partnerNote: "Partner awards only; own-metal ANA bookings have a separate (lower) chart." },
+  "Aeroplan":      { chartClass: "zone",     rtOnly: false, dataConfidence: "official",        sourceUrl: "https://www.aircanada.com/us/en/aco/home/aeroplan/redeem/travel/flight-rewards.html",                             ownMetalDynamic: true,  partnerNote: "Air Canada own metal is dynamic; this chart covers Star Alliance partners (United, Lufthansa, etc.)." },
+  "Avianca":       { chartClass: "zone",     rtOnly: false, dataConfidence: "crossreferenced", sourceUrl: "https://www.lifemiles.com/flight/search",                                                                          partnerNote: "LifeMiles covers Star Alliance partners. Own Avianca metal follows the same zone chart." },
+  "Alaska Airlines":{ chartClass: "zone",   rtOnly: false, dataConfidence: "crossreferenced", sourceUrl: "https://www.alaskaair.com/content/mileage-plan/use-miles/award-travel",                                            partnerNote: "Per-partner tables approximated as zones; actual cost varies slightly by partner airline." },
+  "Singapore":     { chartClass: "zone",     rtOnly: false, dataConfidence: "official",        sourceUrl: "https://www.singaporeair.com/en_UK/us/ppsclub-krisflyer/miles/saver-awards/",                                     partnerNote: "KrisFlyer chart covers partner bookings (Star Alliance). Singapore own metal follows the same chart." },
+  "Qantas":        { chartClass: "zone",     rtOnly: false, dataConfidence: "crossreferenced", sourceUrl: "https://www.qantas.com/us/en/frequent-flyer/use-points/classic-flight-rewards.html",                             partnerNote: "Covers Oneworld partners. Qantas own metal follows the same zone chart." },
+  "Japan Airlines":{ chartClass: "zone",     rtOnly: false, dataConfidence: "crossreferenced", sourceUrl: "https://www.jal.co.jp/en/jalmile/use/partner/",                                                                   partnerNote: "JMB chart covers Oneworld partners. JAL own metal follows the same chart." },
+  "TAP Air Portugal":{ chartClass: "zone",   rtOnly: false, dataConfidence: "crossreferenced", sourceUrl: "https://www.flytap.com/en-us/miles-and-go/rewards-flights/award-chart",                                          partnerNote: "Covers Star Alliance partners. TAP own metal follows the same chart." },
+  "Thai Airways":  { chartClass: "zone",     rtOnly: false, dataConfidence: "crossreferenced", sourceUrl: "https://www.thaiairways.com/en_TH/privilege_lounge/rop/award_flights/award_chart.page",                          partnerNote: "Royal Orchid Plus covers Star Alliance partners. Thai own metal follows the same chart." },
+  "Korean Air":    { chartClass: "zone",     rtOnly: false, dataConfidence: "crossreferenced", sourceUrl: "https://www.koreanair.com/content/dam/koreanair/en/skypass/pdf/award_chart.pdf",                                  partnerNote: "SKYPASS covers SkyTeam partners. No US bank transfers directly to SKYPASS." },
   // CLASS B — distance-based fixed charts
-  "British Airways":{ chartClass: "distance", rtOnly: false },
-  "Iberia":        { chartClass: "distance",  rtOnly: false }, // same Avios chart as BA
-  "Aer Lingus":    { chartClass: "distance",  rtOnly: false }, // AerClub uses Avios distance chart
+  "British Airways":{ chartClass: "distance", rtOnly: false, dataConfidence: "official",       sourceUrl: "https://www.britishairways.com/content/dam/ba/documents/pdfs/avios-flight-rewards.pdf",                          partnerNote: "Avios distance bands cover BA own metal and Oneworld partners. Peak pricing can add 50–100% on high-demand dates." },
+  "Iberia":        { chartClass: "distance",  rtOnly: false, dataConfidence: "official",       sourceUrl: "https://www.iberia.com/us/iberia-plus/use-avios/flight-rewards/",                                                 partnerNote: "Same Avios distance bands as BA. Iberia often has lower surcharges than BA for the same routes." },
+  "Aer Lingus":    { chartClass: "distance",  rtOnly: false, dataConfidence: "official",       sourceUrl: "https://www.aerlingus.com/aer-club/spend-avios/",                                                                 partnerNote: "AerClub uses the same Avios distance bands as BA. Minimal fuel surcharges on Aer Lingus metal." },
   // CLASS C — dynamic (no fixed saver baseline)
-  "United":        { chartClass: null },  // own metal dynamic; partner ~fixed handled separately
-  "Delta":         { chartClass: null },
-  "American Airlines":{ chartClass: null },
-  "Flying Blue":   { chartClass: null },
-  "Turkish":       { chartClass: null },  // FIXED: was wrongly zone-based; went fully dynamic
-  "Emirates":      { chartClass: null },
-  "Aeromexico":    { chartClass: null },
-  "Cathay Pacific":{ chartClass: null },  // moved to dynamic
-  "EVA Air":       { chartClass: null },  // dynamic
-  "Qatar":         { chartClass: null },  // dynamic
-  "Etihad":        { chartClass: null },  // dynamic
-  "Finnair":       { chartClass: null },  // dynamic; Avios-like but rates vary
-  "Virgin Atlantic":{ chartClass: null }, // fully dynamic since 2021
-  "Aeromexico":    { chartClass: null },  // dynamic
-  "Hawaiian":      { chartClass: null },
-  "JetBlue":       { chartClass: null },
-  "Southwest":     { chartClass: null },
-  "Spirit":        { chartClass: null },
+  "United":        { chartClass: null, dataConfidence: "estimate", sourceUrl: "https://thepointsguy.com/guide/united-mileageplus-award-guide/",        partnerNote: "United own metal is dynamic. Book United flights via Aeroplan, ANA, or Singapore for fixed-chart rates." },
+  "Delta":         { chartClass: null, dataConfidence: "estimate", sourceUrl: "https://thepointsguy.com/guide/complete-guide-to-delta-skymiles/",       partnerNote: "Delta is fully dynamic — no fixed saver level exists. Flying Blue partner awards on Delta metal may have published rates." },
+  "American Airlines":{ chartClass: null, dataConfidence: "estimate", sourceUrl: "https://thepointsguy.com/guide/american-airlines-award-chart/",       partnerNote: "AAdvantage went fully dynamic in 2023. Book AA metal via Alaska, Iberia, or British Airways for fixed rates." },
+  "Flying Blue":   { chartClass: null, dataConfidence: "estimate", sourceUrl: "https://thepointsguy.com/loyalty-programs/ultimate-guide-flying-blue/",  ownMetalDynamic: true, partnerNote: "Flying Blue is dynamic but predictable. Monthly Promo Rewards offer discounts. Surcharges apply ($200–$350 OW)." },
+  "Turkish":       { chartClass: null, dataConfidence: "estimate", sourceUrl: "https://thepointsguy.com/guide/turkish-airlines-miles-smiles-guide/",    partnerNote: "Miles&Smiles went fully dynamic. Book Turkish metal via other Star Alliance programs (Aeroplan, Singapore) for fixed rates." },
+  "Emirates":      { chartClass: null, dataConfidence: "estimate", sourceUrl: "https://thepointsguy.com/guide/emirates-skywards-award-chart/",          partnerNote: "Emirates Skywards is dynamic. No partner programs offer Emirates at a fixed rate — you must use Skywards miles." },
+  "Aeromexico":    { chartClass: null, dataConfidence: "estimate", sourceUrl: "https://thepointsguy.com/guide/aeromexico-club-premier-award-chart/",    partnerNote: "Club Premier is dynamic. Book Aeromexico via SkyTeam partners like Flying Blue or Korean Air for approximate fixed rates." },
+  "Cathay Pacific":{ chartClass: null, dataConfidence: "estimate", sourceUrl: "https://thepointsguy.com/guide/asia-miles-award-chart/",                 partnerNote: "Asia Miles moved to dynamic pricing. Book Cathay metal via Alaska or oneworld partners for more predictable rates." },
+  "EVA Air":       { chartClass: null, dataConfidence: "estimate", sourceUrl: "https://thepointsguy.com/guide/eva-air-infinity-mileagelands-award-chart/", partnerNote: "EVA Air Infinity MileageLands is dynamic. Book via Aeroplan or Singapore for Star Alliance fixed rates." },
+  "Qatar":         { chartClass: null, dataConfidence: "estimate", sourceUrl: "https://thepointsguy.com/guide/qatar-airways-privilege-club-guide/",     partnerNote: "Avios (Qatar) is distance-based for some routes but pricing varies. Book Qatar metal via British Airways Avios for published distance-band rates." },
+  "Etihad":        { chartClass: null, dataConfidence: "estimate", sourceUrl: "https://thepointsguy.com/guide/etihad-guest-award-chart/",               partnerNote: "Etihad Guest is dynamic. No major US bank transfers to Etihad after mid-2026." },
+  "Finnair":       { chartClass: null, dataConfidence: "estimate", sourceUrl: "https://thepointsguy.com/guide/finnair-plus-award-chart/",               partnerNote: "Finnair Plus went dynamic. Book Finnair metal via Avios (BA/Iberia distance bands) for published rates." },
+  "Virgin Atlantic":{ chartClass: null, dataConfidence: "estimate", sourceUrl: "https://thepointsguy.com/guide/virgin-atlantic-flying-club-award-chart/", partnerNote: "Flying Club has been fully dynamic since 2021. Book Virgin metal via Delta SkyMiles or Air France/KLM Flying Blue." },
+  "Hawaiian":      { chartClass: null, dataConfidence: "estimate", sourceUrl: "https://thepointsguy.com/guide/hawaiian-airlines-mileageplan-award-chart/", partnerNote: "HawaiianMiles is dynamic. Now under Alaska/Atmos; book via Alaska Mileage Plan for better rates." },
+  "JetBlue":       { chartClass: null, dataConfidence: "estimate", sourceUrl: "https://thepointsguy.com/guide/jetblue-trueblue-award-chart/",           partnerNote: "TrueBlue is fully dynamic (1.4¢/point fixed-value redemption model, not award chart)." },
+  "Southwest":     { chartClass: null, dataConfidence: "estimate", sourceUrl: "https://thepointsguy.com/guide/southwest-airlines-rapid-rewards-guide/", partnerNote: "Rapid Rewards is fully dynamic — 1.5¢/point fixed-value model, no award chart." },
+  "Spirit":        { chartClass: null, dataConfidence: "estimate", sourceUrl: "https://thepointsguy.com/guide/spirit-airlines-free-spirit-award-chart/", partnerNote: "Free Spirit is dynamic. Redemption rates are low; points best used for short domestic routes." },
 };
 
 export function programChartClass(program) {

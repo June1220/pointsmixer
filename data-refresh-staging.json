@@ -1,0 +1,23 @@
+{
+  "_comment": "Accumulated blog-mined CPP samples. Claude appends here each week; quarterly pass writes to transferPartners.js.",
+  "_lastSession": null,
+  "pegCentsSamples": {
+    "Flying Blue":       [],
+    "American Airlines": [],
+    "Delta":             [],
+    "United":            [],
+    "Emirates":          [],
+    "Turkish":           [],
+    "Cathay Pacific":    [],
+    "Qatar":             [],
+    "Etihad":            [],
+    "JetBlue":           [],
+    "Finnair":           [],
+    "Southwest":         [],
+    "Virgin Atlantic":   [],
+    "Aeromexico":        [],
+    "Hawaiian":          [],
+    "Spirit":            [],
+    "EVA Air":           []
+  }
+}

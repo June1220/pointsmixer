@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useRef, useState, useEffect, useCallback } from "react";
-import { allAirlines, pointValues } from "./data/transferPartners";
+import { allAirlines, pointValues, getPointValue } from "./data/transferPartners";
 import { airportList, displayName } from "./data/airports";
 import {
   Plane,
@@ -58,6 +58,18 @@ const SORTS = [
   { key: "cost", label: "Lowest $ of points" },
   { key: "points", label: "Fewest miles" },
 ];
+
+// ── Session persistence ───────────────────────────────────────────────────────
+// State is saved to localStorage on every change (debounced) and restored on
+// load. Each browser is isolated — multiple concurrent users on different
+// devices never see each other's data.
+const SESSION_KEY = "pointsmixer_v1";
+
+function loadSession() {
+  if (typeof window === "undefined") return {};
+  try { return JSON.parse(localStorage.getItem(SESSION_KEY) || "{}"); }
+  catch { return {}; }
+}
 
 // Default search date ≈ 90 days out, YYYY-MM-DD.
 function defaultDate() {
@@ -184,18 +196,18 @@ export default function Page() {
   const [mode, setMode] = useState("manual");
 
   // ── Manual ("I know my flight") mode state ──────────────────────────────
-  const [program, setProgram] = useState("ANA");
-  const [pointsRequired, setPointsRequired] = useState(88000);
-  const [cashPrice, setCashPrice] = useState(3200);
-  const [mOrigin, setMOrigin] = useState("JFK");
-  const [mDest, setMDest] = useState("LIS");
-  const [mCabin, setMCabin] = useState("business");
+  const [program, setProgram] = useState("");
+  const [pointsRequired, setPointsRequired] = useState("");
+  const [cashPrice, setCashPrice] = useState("");
+  const [mOrigin, setMOrigin] = useState("");
+  const [mDest, setMDest] = useState("");
+  const [mCabin, setMCabin] = useState("economy");
 
   // ── Flight-search funnel state ──────────────────────────────────────────
-  const [sOrigin, setSOrigin] = useState("JFK");
-  const [sDest, setSDest] = useState("LIS");
+  const [sOrigin, setSOrigin] = useState("");
+  const [sDest, setSDest] = useState("");
   const [sDate, setSDate] = useState(defaultDate());
-  const [sCabin, setSCabin] = useState("business");
+  const [sCabin, setSCabin] = useState("economy");
   const [sAdults, setSAdults] = useState(1);
   const [sSort, setSSort] = useState("value");
   const [searchLoading, setSearchLoading] = useState(false);
@@ -203,15 +215,48 @@ export default function Page() {
   const [searchData, setSearchData] = useState(null); // { mock, query, results }
   const [selected, setSelected] = useState(null); // a chosen ranked candidate
   const [balances, setBalances] = useState({
-    "Chase UR": 120000,
-    "Amex MR": 90000,
-    "Capital One": 60000,
-    "Citi TYP": 40000,
-    Bilt: 30000,
+    "Chase UR": 0, "Amex MR": 0, "Capital One": 0, "Citi TYP": 0, Bilt: 0,
   });
 
   // Miles held DIRECTLY in airline programs. Rows: [{ id, airline, amount }].
   const [directRows, setDirectRows] = useState([]);
+
+  // Restore saved session after hydration (post-mount only — avoids SSR mismatch).
+  useEffect(() => {
+    const s = loadSession();
+    if (!s || Object.keys(s).length === 0) return;
+    if (s.mode)          setMode(s.mode);
+    if (s.program != null)       setProgram(s.program);
+    if (s.pointsRequired != null) setPointsRequired(s.pointsRequired);
+    if (s.cashPrice != null)     setCashPrice(s.cashPrice);
+    if (s.mOrigin != null)       setMOrigin(s.mOrigin);
+    if (s.mDest != null)         setMDest(s.mDest);
+    if (s.mCabin)        setMCabin(s.mCabin);
+    if (s.sOrigin != null)       setSOrigin(s.sOrigin);
+    if (s.sDest != null)         setSDest(s.sDest);
+    if (s.sDate)         setSDate(s.sDate);
+    if (s.sCabin)        setSCabin(s.sCabin);
+    if (s.sAdults != null)       setSAdults(s.sAdults);
+    if (s.sSort)         setSSort(s.sSort);
+    if (s.balances)      setBalances(s.balances);
+    if (s.directRows)    setDirectRows(s.directRows);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Persist session to localStorage on every meaningful state change.
+  useEffect(() => {
+    const t = setTimeout(() => {
+      try {
+        localStorage.setItem(SESSION_KEY, JSON.stringify({
+          mode, program, pointsRequired, cashPrice,
+          mOrigin, mDest, mCabin,
+          sOrigin, sDest, sDate, sCabin, sAdults, sSort,
+          balances, directRows,
+        }));
+      } catch {}
+    }, 400);
+    return () => clearTimeout(t);
+  }, [mode, program, pointsRequired, cashPrice, mOrigin, mDest, mCabin,
+      sOrigin, sDest, sDate, sCabin, sAdults, sSort, balances, directRows]);
 
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState(null);
@@ -348,7 +393,7 @@ export default function Page() {
             <span className="bank-name">
               {bank.label}
               {pointValues[bank.key] != null && (
-                <span className="bank-cpp">~{(pointValues[bank.key] * 100).toFixed(2)}¢/pt</span>
+                <span className="bank-cpp">~{(getPointValue(bank.key) * 100).toFixed(2)}¢/pt</span>
               )}
             </span>
             <input
@@ -820,7 +865,14 @@ function ResultCard({ r, onSelect }) {
           </div>
           <div className="rc-metric">
             <p className="m-lab">Est. miles</p>
-            <p className="m-val tnum">{fmt(r.estPoints)}</p>
+            <p className="m-val tnum">
+              {fmt(r.estPoints)}
+              {r.estPointsRange && (
+                <span className="est-range tnum" title="Pessimistic–optimistic range based on observed redemption distribution">
+                  {" "}({fmt(r.estPointsRange.low)}–{fmt(r.estPointsRange.high)})
+                </span>
+              )}
+            </p>
           </div>
           <div className="rc-metric">
             <p className="m-lab">Points worth</p>
@@ -834,10 +886,15 @@ function ResultCard({ r, onSelect }) {
           <span className={`rc-badge ${r.awardType === "own" ? "chart" : "heuristic"}`}>
             {awardTypeLabel(r.awardType)}
           </span>
-          <span className={`rc-badge${r.estConfidence === "low" ? " warn" : ""}`}>
+          <span className={`rc-badge${r.estConfidence === "low" ? " warn" : ""}`}
+                title={r.estDataConfidence === "official" ? "Based on an official published award chart"
+                      : r.estDataConfidence === "crossreferenced" ? "Verified against multiple independent sources"
+                      : "Editorial estimate — no empirical samples yet"}>
             {r.estBasis === "zone-chart" || r.estBasis === "distance-chart"
-              ? "chart estimate"
-              : r.estConfidence === "low" ? "rough estimate" : "heuristic estimate"}
+              ? (r.estDataConfidence === "official" ? "official chart" : "chart estimate")
+              : r.estConfidence === "low"
+                ? (r.estDataConfidence === "estimate" ? "rough estimate ⚠" : "rough estimate")
+                : "heuristic estimate"}
           </span>
           <span className={`rc-badge ${r.fundable ? "chart" : "no"}`}>
             {r.fundable ? "fundable" : "not enough points"}
@@ -916,81 +973,85 @@ function AwardQuality({ aq, program, origin, destination, cabin, quotedMiles }) 
         <span className={`aq-badge ${band}`}>{label}</span>
       </div>
 
-      {/* Dynamic program: show historical range + where quote falls */}
+      {/* Dynamic program: range data */}
       {band === "dynamic" && aq.dynamicRange ? (
         <>
-          <p className="aq-row">
-            <b>{program}</b> uses dynamic pricing — no fixed saver chart.{" "}
-            {aq.dynamicRange.basis === "route-specific"
-              ? `Route-specific data (${origin}→${destination}): `
-              : aq.dynamicRange.basis === "distance-scaled" && aq.dynamicRange.distanceMi
-              ? `${origin}→${destination} (~${aq.dynamicRange.distanceMi.toLocaleString()} mi, distance-scaled): `
-              : `Regional estimate (${origin}→${destination}): `}
-            <b>~{fmt(aq.dynamicRange.low)}–{fmt(aq.dynamicRange.high)} miles</b> historically.
-            {aq.rangeClass && (() => {
-              const rc = RANGE_CLASS_LABELS[aq.rangeClass];
-              return rc ? (
-                <> You&apos;re quoted <b>{fmt(quotedMiles)}</b> miles —{" "}
-                  <b style={{ color: `var(--${rc.cls})` }}>{rc.label}</b>
-                  {rc.note ? ` ${rc.note}` : "."}</>
-              ) : null;
-            })()}
-          </p>
+          <div className="aq-range-row">
+            <span className="aq-range-label">
+              {aq.dynamicRange.basis === "route-specific"
+                ? `${origin}→${destination} (route data)`
+                : aq.dynamicRange.basis === "distance-scaled" && aq.dynamicRange.distanceMi
+                ? `${origin}→${destination} · ~${aq.dynamicRange.distanceMi.toLocaleString()} mi`
+                : `${origin}→${destination} (regional)`}
+            </span>
+            <span className="aq-range-nums tnum">
+              ~{fmt(aq.dynamicRange.low)}–{fmt(aq.dynamicRange.high)} mi
+            </span>
+          </div>
+          {aq.rangeClass && (() => {
+            const rc = RANGE_CLASS_LABELS[aq.rangeClass];
+            return rc ? (
+              <p className={`aq-verdict ${rc.cls}`}>
+                <b>{fmt(quotedMiles)} miles</b> — {rc.label}
+                {rc.note && <span className="aq-verdict-note"> {rc.note}</span>}
+              </p>
+            ) : null;
+          })()}
           {aq.dynamicRange.note && (
-            <p className="aq-row" style={{ color: "var(--muted)", fontSize: "12.5px" }}>
-              {aq.dynamicRange.note}
-            </p>
+            <details className="aq-detail">
+              <summary>Route notes</summary>
+              <p>{aq.dynamicRange.note}</p>
+            </details>
           )}
-          <p className="aq-source" style={{ marginTop: 6 }}>
-            Historical data — not a saver guarantee. Dynamic prices vary by date and demand.{" "}
-            {aq.dynamicRange.source && <>Source: {aq.dynamicRange.source}</>}
+          <p className="aq-source">
+            Historical ranges · not a booking guarantee ·{" "}
+            {aq.dynamicRange.source && <>src: {aq.dynamicRange.source}</>}
           </p>
         </>
       ) : band === "dynamic" ? (
         <p className="aq-row">
-          <b>{program}</b> prices awards dynamically — no published saver chart and no
-          historical range data available for this route. Award prices vary significantly.
+          <b>{program}</b> prices dynamically — no historical range for this route.
         </p>
       ) : null}
 
       {/* RT-only (ANA) */}
       {band === "rt-only" && aq.baselineMiles && (
-        <p className="aq-row">
-          <b>{program}</b> partner awards require <b>round-trip</b> bookings. Published{" "}
-          {cabin} round-trip: <b>~{fmt(aq.baselineMiles)} miles</b> total.
-        </p>
+        <div className="aq-range-row">
+          <span className="aq-range-label">{cabin} round-trip</span>
+          <span className="aq-range-nums tnum">~{fmt(aq.baselineMiles)} mi total</span>
+        </div>
       )}
 
       {/* Fixed-chart programs: good / typical / high */}
       {(band === "good" || band === "typical" || band === "high") && aq.baselineMiles && (
-        <p className="aq-row">
-          Published saver level ({cabin}, {origin}→{destination}) via{" "}
-          <b>{program}</b>: ~<b>{fmt(aq.baselineMiles)} miles</b>.{" "}
+        <>
+          <div className="aq-range-row">
+            <span className="aq-range-label">Published saver · {cabin}</span>
+            <span className="aq-range-nums tnum">~{fmt(aq.baselineMiles)} mi</span>
+          </div>
           {aq.ratio != null && (
-            <span>
-              You&apos;re quoted{" "}
+            <p className={`aq-verdict ${band === "good" ? "pos" : band === "high" ? "warn" : "info"}`}>
               {band === "good"
-                ? "≈ the published saver level — a good value."
+                ? "≈ saver baseline — good value"
                 : band === "typical"
-                ? `~${Math.round((aq.ratio - 1) * 100)}% above the saver baseline.`
-                : `~${Math.round((aq.ratio - 1) * 100)}% above the saver baseline — high for this route.`}
-            </span>
+                ? `~${Math.round((aq.ratio - 1) * 100)}% above baseline`
+                : `~${Math.round((aq.ratio - 1) * 100)}% above baseline — high`}
+            </p>
           )}
-        </p>
+          {aq.source && <p className="aq-source">src: {aq.source}</p>}
+        </>
       )}
 
       {/* Cheaper-program hint */}
       {aq.cheaperProgram && (
-        <p className="aq-alt">
-          Lower-cost option: <b>{aq.cheaperProgram.program}</b> typically prices this route at{" "}
-          ~<b>{fmt(aq.cheaperProgram.baseline)} miles</b>
-          {aq.cheaperProgram.rtOnly ? " (RT total)" : ""}{" "}
-          [{aq.cheaperProgram.basis}].
-        </p>
-      )}
-
-      {aq.source && band !== "dynamic" && (
-        <p className="aq-source">Source: {aq.source}</p>
+        <div className="aq-tip">
+          <span className="aq-tip-label">💡 Lower cost</span>
+          <span>
+            <b>{aq.cheaperProgram.program}</b> · ~{fmt(aq.cheaperProgram.baseline)} mi
+            {aq.cheaperProgram.rtOnly ? " RT" : ""}{" "}
+            <span className="aq-source" style={{display:"inline"}}>[{aq.cheaperProgram.basis}]</span>
+          </span>
+        </div>
       )}
     </div>
   );

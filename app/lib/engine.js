@@ -4,7 +4,9 @@ import {
   alliances,
   allAirlines,
   pointValues,
+  getPointValue,
   defaultPointValue,
+  getActiveBonus,
   transferIncrements,
   exciseFeeCap,
   getTiers,
@@ -128,8 +130,8 @@ export function computeBlueprint({ program, pointsRequired, balances, directBala
     const balance = Number(balances?.[p.bank]) || 0;
     const inc = transferIncrements[p.bank] || 1;
     const maxPoints = Math.floor(balance / inc) * inc; // only whole increments move
-    const effRatio = p.ratio * (1 + p.bonus);
-    const pv = pointValues[p.bank] ?? defaultPointValue;
+    const effRatio = p.ratio * (1 + getActiveBonus(p));
+    const pv = getPointValue(p.bank);
     const deliverable = Math.floor(maxPoints * effRatio);
     const costPerMile = (pv + p.feePerPoint) / effRatio;
     return {
@@ -350,9 +352,9 @@ function summarize(transfers, balances, capacity) {
   const spent = {};
   for (const t of transfers) spent[t.bank] = (spent[t.bank] || 0) + t.amount;
   let preservedValueUSD = 0;
-  for (const [bank, pv] of Object.entries(pointValues)) {
+  for (const bank of Object.keys(pointValues)) {
     const bal = Number(balances?.[bank]) || 0;
-    preservedValueUSD += Math.max(0, bal - (spent[bank] || 0)) * pv;
+    preservedValueUSD += Math.max(0, bal - (spent[bank] || 0)) * getPointValue(bank);
   }
 
   return {

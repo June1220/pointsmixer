@@ -50,8 +50,10 @@ function buildCandidate(offer, program, awardType, { origin, destination, cabin,
     program,
     awardType, // "own" | "partner"
     estPoints: est.points,
-    estBasis: est.basis, // chart | heuristic
+    estPointsRange: est.pointsRange ?? null,  // { low, high } for heuristic estimates only
+    estBasis: est.basis,
     estConfidence: est.confidence,
+    estDataConfidence: est.dataConfidence ?? null,
     estNote: est.note,
     fundable: blueprint.isPossible,
     pointsCostUSD: blueprint.valueSummary?.totalCostUSD ?? null,

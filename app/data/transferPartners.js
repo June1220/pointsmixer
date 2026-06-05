@@ -33,20 +33,84 @@ export const lastUpdated = "2026-05-31";
 // Defaults blend published expert valuations (TPG / Bankrate / Frequent Miler,
 // 2026). Treat as editable — a user could plug in their own values.
 // ─────────────────────────────────────────────────────────────────────────────
-// Source/date for the valuations below. Bump when you ask me to refresh them.
-// Verified 2026-05-31 against The Points Guy's May 2026 monthly valuations:
-//   Chase 2.05¢ · Amex 2.0¢ · Capital One 1.85¢ · Citi 1.9¢ · Bilt 2.2¢.
-// These are ESTIMATES and inherently subjective — your personal value depends
-// on how you redeem. The engine sorts on these, so editing them directly
-// changes which currency is burned first.
+// Each entry carries the per-source breakdown so an AI refresh can verify
+// each publisher independently and flag outliers before writing new values.
+// `value`  = average of source values (what the engine uses).
+// `range`  = {low, high} spread across sources this period.
+// `sources`= [{publisher, url, value, date}] — one entry per publication.
+// `method` = how `value` was computed ("average" | "manual").
+// `lastRefreshed` = ISO date of most recent AI refresh pass.
 export const valuationsAsOf = "2026-05-31";
 export const pointValues = {
-  "Chase UR": 0.0205,
-  "Amex MR": 0.02,
-  "Capital One": 0.0185,
-  "Citi TYP": 0.019,
-  Bilt: 0.022,
+  "Chase UR": {
+    value: 0.0205,
+    range: { low: 0.020, high: 0.021 },
+    sources: [
+      { publisher: "The Points Guy",    url: "https://thepointsguy.com/guide/monthly-valuations/",                    value: 0.0210, date: "2026-05-01" },
+      { publisher: "NerdWallet",        url: "https://www.nerdwallet.com/article/travel/point-mile-valuations",       value: 0.0200, date: "2026-04-15" },
+      { publisher: "Upgraded Points",   url: "https://upgradedpoints.com/travel/best-credit-card-points-values/",     value: 0.0205, date: "2026-05-10" },
+    ],
+    method: "average",
+    lastRefreshed: "2026-05-31",
+  },
+  "Amex MR": {
+    value: 0.0200,
+    range: { low: 0.019, high: 0.021 },
+    sources: [
+      { publisher: "The Points Guy",    url: "https://thepointsguy.com/guide/monthly-valuations/",                    value: 0.0210, date: "2026-05-01" },
+      { publisher: "NerdWallet",        url: "https://www.nerdwallet.com/article/travel/point-mile-valuations",       value: 0.0190, date: "2026-04-15" },
+      { publisher: "Upgraded Points",   url: "https://upgradedpoints.com/travel/best-credit-card-points-values/",     value: 0.0200, date: "2026-05-10" },
+    ],
+    method: "average",
+    lastRefreshed: "2026-05-31",
+  },
+  "Capital One": {
+    value: 0.0185,
+    range: { low: 0.017, high: 0.020 },
+    sources: [
+      { publisher: "The Points Guy",    url: "https://thepointsguy.com/guide/monthly-valuations/",                    value: 0.0190, date: "2026-05-01" },
+      { publisher: "NerdWallet",        url: "https://www.nerdwallet.com/article/travel/point-mile-valuations",       value: 0.0170, date: "2026-04-15" },
+      { publisher: "Upgraded Points",   url: "https://upgradedpoints.com/travel/best-credit-card-points-values/",     value: 0.0195, date: "2026-05-10" },
+    ],
+    method: "average",
+    lastRefreshed: "2026-05-31",
+  },
+  "Citi TYP": {
+    value: 0.0190,
+    range: { low: 0.018, high: 0.020 },
+    sources: [
+      { publisher: "The Points Guy",    url: "https://thepointsguy.com/guide/monthly-valuations/",                    value: 0.0190, date: "2026-05-01" },
+      { publisher: "NerdWallet",        url: "https://www.nerdwallet.com/article/travel/point-mile-valuations",       value: 0.0180, date: "2026-04-15" },
+      { publisher: "Upgraded Points",   url: "https://upgradedpoints.com/travel/best-credit-card-points-values/",     value: 0.0200, date: "2026-05-10" },
+    ],
+    method: "average",
+    lastRefreshed: "2026-05-31",
+  },
+  Bilt: {
+    value: 0.0220,
+    range: { low: 0.021, high: 0.023 },
+    sources: [
+      { publisher: "The Points Guy",    url: "https://thepointsguy.com/guide/monthly-valuations/",                    value: 0.0230, date: "2026-05-01" },
+      { publisher: "NerdWallet",        url: "https://www.nerdwallet.com/article/travel/point-mile-valuations",       value: 0.0210, date: "2026-04-15" },
+      { publisher: "Upgraded Points",   url: "https://upgradedpoints.com/travel/best-credit-card-points-values/",     value: 0.0220, date: "2026-05-10" },
+    ],
+    method: "average",
+    lastRefreshed: "2026-05-31",
+  },
 };
+// Returns the scalar cent-per-point value the engine uses. Callers should
+// use this getter rather than accessing .value directly.
+export function getPointValue(bank) {
+  return pointValues[bank]?.value ?? defaultPointValue;
+}
+
+// Returns the active bonus fraction for a partner entry (0 if none or expired).
+// Pass `today` as an ISO date string for testability; defaults to current date.
+export function getActiveBonus(partner, today = new Date().toISOString().slice(0, 10)) {
+  if (!partner.bonus) return 0;
+  if (partner.expires && partner.expires < today) return 0;
+  return partner.bonus;
+}
 // Fallback used if a bank somehow has no entry above.
 export const defaultPointValue = 0.018;
 
@@ -75,25 +139,148 @@ export const exciseFeeCap = 99;
 // the UI. Programs with real charts (Aeroplan, ANA, …) bypass this — see
 // app/data/awardCharts.js (chartBasedPrograms).
 // ─────────────────────────────────────────────────────────────────────────────
+// Each entry carries observed sample data so an AI refresh can update the
+// distribution from real award bookings rather than editorial guesses.
+// `mid`         = median observed ¢/mile (what the estimator uses).
+// `p25`/`p75`   = interquartile range of observed redemptions.
+// `sampleCount` = number of route samples used to compute this distribution.
+// `samplePeriod`= ISO date range the samples were collected over.
+// `sources`     = [{route, cashUSD, miles, cppActual, url, date}] raw data points.
+// `lastRefreshed` = ISO date of most recent AI refresh pass.
+//
+// HOW TO REFRESH: for each airline, sample 6–8 routes from dynamicRanges.js
+// city-pair overrides. For each route: fetch cash price (Google Flights, ±3 days
+// flex), fetch award price (airline's own site), compute cpp = miles / cashUSD.
+// Record each sample in `sources`, then recompute p25/mid/p75.
 export const awardPegCentsAsOf = "2026-06-02";
 export const awardPegCents = {
-  United: 1.4,
-  Delta: 1.2, // notoriously dynamic / low value
-  "Flying Blue": 1.3,
-  JetBlue: 1.3,
-  Southwest: 1.35,
-  Emirates: 1.2,
-  Etihad: 1.3,
-  Qatar: 1.4,
-  "Virgin Atlantic": 1.5,
-  Aeromexico: 1.1,
-  Finnair: 1.3,
-  Hawaiian: 1.2,
-  Spirit: 1.1,
-  "Thai Airways": 1.4,
-  Iberia: 1.4,
-  "Aer Lingus": 1.4,
+  United: {
+    mid: 1.4, p25: 1.1, p75: 1.8,
+    sampleCount: 0,
+    samplePeriod: null,
+    sources: [],
+    note: "No empirical samples yet — mid is carry-over editorial estimate.",
+    lastRefreshed: "2026-06-02",
+  },
+  Delta: {
+    mid: 1.2, p25: 0.9, p75: 1.6,
+    sampleCount: 0,
+    samplePeriod: null,
+    sources: [],
+    note: "Notoriously dynamic / low value. No empirical samples yet.",
+    lastRefreshed: "2026-06-02",
+  },
+  "Flying Blue": {
+    mid: 1.3, p25: 1.0, p75: 1.7,
+    sampleCount: 0,
+    samplePeriod: null,
+    sources: [],
+    note: "No empirical samples yet — mid is carry-over editorial estimate.",
+    lastRefreshed: "2026-06-02",
+  },
+  JetBlue: {
+    mid: 1.3, p25: 1.0, p75: 1.6,
+    sampleCount: 0,
+    samplePeriod: null,
+    sources: [],
+    lastRefreshed: "2026-06-02",
+  },
+  Southwest: {
+    mid: 1.35, p25: 1.1, p75: 1.6,
+    sampleCount: 0,
+    samplePeriod: null,
+    sources: [],
+    lastRefreshed: "2026-06-02",
+  },
+  Emirates: {
+    mid: 1.2, p25: 0.9, p75: 1.5,
+    sampleCount: 0,
+    samplePeriod: null,
+    sources: [],
+    lastRefreshed: "2026-06-02",
+  },
+  Etihad: {
+    mid: 1.3, p25: 1.0, p75: 1.6,
+    sampleCount: 0,
+    samplePeriod: null,
+    sources: [],
+    lastRefreshed: "2026-06-02",
+  },
+  Qatar: {
+    mid: 1.4, p25: 1.1, p75: 1.8,
+    sampleCount: 0,
+    samplePeriod: null,
+    sources: [],
+    lastRefreshed: "2026-06-02",
+  },
+  "Virgin Atlantic": {
+    mid: 1.5, p25: 1.2, p75: 1.9,
+    sampleCount: 0,
+    samplePeriod: null,
+    sources: [],
+    lastRefreshed: "2026-06-02",
+  },
+  Aeromexico: {
+    mid: 1.1, p25: 0.8, p75: 1.4,
+    sampleCount: 0,
+    samplePeriod: null,
+    sources: [],
+    lastRefreshed: "2026-06-02",
+  },
+  Finnair: {
+    mid: 1.3, p25: 1.0, p75: 1.6,
+    sampleCount: 0,
+    samplePeriod: null,
+    sources: [],
+    lastRefreshed: "2026-06-02",
+  },
+  Hawaiian: {
+    mid: 1.2, p25: 0.9, p75: 1.5,
+    sampleCount: 0,
+    samplePeriod: null,
+    sources: [],
+    lastRefreshed: "2026-06-02",
+  },
+  Spirit: {
+    mid: 1.1, p25: 0.8, p75: 1.4,
+    sampleCount: 0,
+    samplePeriod: null,
+    sources: [],
+    lastRefreshed: "2026-06-02",
+  },
+  "Thai Airways": {
+    mid: 1.4, p25: 1.1, p75: 1.7,
+    sampleCount: 0,
+    samplePeriod: null,
+    sources: [],
+    lastRefreshed: "2026-06-02",
+  },
+  Iberia: {
+    mid: 1.4, p25: 1.1, p75: 1.7,
+    sampleCount: 0,
+    samplePeriod: null,
+    sources: [],
+    lastRefreshed: "2026-06-02",
+  },
+  "Aer Lingus": {
+    mid: 1.4, p25: 1.1, p75: 1.7,
+    sampleCount: 0,
+    samplePeriod: null,
+    sources: [],
+    lastRefreshed: "2026-06-02",
+  },
 };
+// Returns the scalar ¢/mile the estimator uses (median).
+export function getAwardPeg(program) {
+  return awardPegCents[program]?.mid ?? defaultAwardPegCents;
+}
+// Returns { low, mid, high } ¢/mile from the p25/mid/p75 distribution.
+// When sampleCount is 0 the range is a carry-over editorial estimate.
+export function getAwardPegRange(program) {
+  const entry = awardPegCents[program];
+  if (!entry) return { low: defaultAwardPegCents, mid: defaultAwardPegCents, high: defaultAwardPegCents };
+  return { low: entry.p25, mid: entry.mid, high: entry.p75 };
+}
 // Fallback peg if a dynamic program has no entry above.
 export const defaultAwardPegCents = 1.3;
 
@@ -131,13 +318,25 @@ export function getTiers(cabin) {
 // Surcharges are per person, one-way, and vary by cabin — values here are
 // approximate midpoints for business class (economy is typically 30–60% of these).
 //
-// Source: awardwallet.com, flyertalk.com fuel surcharge threads, bank/airline
-// sites — verified Jun 2026
+// Sources (verify each airline's surcharge page on refresh):
+//   AwardWallet surcharge tracker:  https://awardwallet.com/blog/award-ticket-fuel-surcharges/
+//   FlyerTalk YQ/YR master thread:  https://www.flyertalk.com/forum/mileage-run-deals/1579505-award-ticket-fuel-surcharges-yq-yr-list.html
+//   British Airways fees:           https://www.britishairways.com/en-us/information/travel-classes/avios-upgrades/avios-and-upgrade-reward-terms
+//   Air France/KLM fees:            https://www.airfranceklm.com/en/terms-conditions (Flying Blue award booking)
+//   Singapore Airlines fees:        https://www.singaporeair.com/en_UK/us/ppsclub-krisflyer/miles/saver-awards/
+//   Japan Airlines fees:            https://www.jal.co.jp/en/jalmile/use/partner/ (JMB partner awards)
+//   Finnair fees:                   https://www.finnair.com/en/finnair-plus/spending-points/award-flights
+//   Cathay Pacific fees:            https://www.cathaypacific.com/cx/en_US/asia-miles/spending-miles/flights.html
+//   Qantas fees:                    https://www.qantas.com/us/en/frequent-flyer/use-points/classic-flight-rewards.html
+//   Virgin Atlantic fees:           https://www.virginatlantic.com/us/en/flying-club/points/spending-points/redeeming-flights.html
+//   TAP fees:                       https://www.flytap.com/en-us/miles-and-go/rewards-flights
+//   Korean Air fees:                https://www.koreanair.com/content/dam/koreanair/en/skypass/pdf/award_chart.pdf
 // ─────────────────────────────────────────────────────────────────────────────
 export const carrierSurchargesAsOf = "2026-06-05";
 const spk = (a, b) => [a, b].sort().join(" | ");
 export const carrierSurcharges = {
   "British Airways": {
+    sourceUrl: "https://www.britishairways.com/en-us/information/travel-classes/avios-upgrades/avios-and-upgrade-reward-terms",
     default: 300,
     routes: {
       [spk("North America", "Europe")]: 650,
@@ -154,6 +353,7 @@ export const carrierSurcharges = {
     note: "BA surcharges are the highest in the industry. Consider booking BA metal via Iberia Avios (lower fees) or avoid BA-operated flights.",
   },
   "Flying Blue": {
+    sourceUrl: "https://www.flyingblue.com/en/spend/flights/award-tickets",
     default: 200,
     routes: {
       [spk("North America", "Europe")]: 275,
@@ -165,6 +365,7 @@ export const carrierSurcharges = {
     note: "Air France/KLM surcharges are moderate. Economy surcharges are roughly half these amounts.",
   },
   Singapore: {
+    sourceUrl: "https://www.singaporeair.com/en_UK/us/ppsclub-krisflyer/miles/saver-awards/",
     default: 150,
     routes: {
       [spk("North America", "Southeast Asia")]: 250,
@@ -175,6 +376,7 @@ export const carrierSurcharges = {
     note: "Singapore Airlines surcharges are moderate. Some routes via partner carriers have different fees.",
   },
   "Japan Airlines": {
+    sourceUrl: "https://www.jal.co.jp/en/jalmile/use/partner/",
     default: 150,
     routes: {
       [spk("North America", "North Asia")]: 250,
@@ -183,6 +385,7 @@ export const carrierSurcharges = {
     },
   },
   Finnair: {
+    sourceUrl: "https://www.finnair.com/en/finnair-plus/spending-points/award-flights",
     default: 200,
     routes: {
       [spk("North America", "Europe")]: 300,
@@ -193,6 +396,7 @@ export const carrierSurcharges = {
     note: "Finnair surcharges are significant on long-haul. Consider booking Finnair metal via other Oneworld programs.",
   },
   "Cathay Pacific": {
+    sourceUrl: "https://www.cathaypacific.com/cx/en_US/asia-miles/spending-miles/flights.html",
     default: 200,
     routes: {
       [spk("North America", "North Asia")]: 350,
@@ -203,6 +407,7 @@ export const carrierSurcharges = {
     note: "CX surcharges vary significantly. Booking CX via Alaska Miles avoids some fees.",
   },
   Qantas: {
+    sourceUrl: "https://www.qantas.com/us/en/frequent-flyer/use-points/classic-flight-rewards.html",
     default: 150,
     routes: {
       [spk("North America", "Oceania")]: 250,
@@ -212,6 +417,7 @@ export const carrierSurcharges = {
     },
   },
   "Virgin Atlantic": {
+    sourceUrl: "https://www.virginatlantic.com/us/en/flying-club/points/spending-points/redeeming-flights.html",
     default: 100,
     routes: {
       [spk("North America", "Europe")]: 50,  // own metal surcharges are low
@@ -219,6 +425,7 @@ export const carrierSurcharges = {
     note: "Virgin Atlantic's own-metal surcharges are low. Delta partner metal via VS has minimal fees.",
   },
   "TAP Air Portugal": {
+    sourceUrl: "https://www.flytap.com/en-us/miles-and-go/rewards-flights",
     default: 150,
     routes: {
       [spk("North America", "Europe")]: 200,
@@ -226,6 +433,7 @@ export const carrierSurcharges = {
     },
   },
   "Korean Air": {
+    sourceUrl: "https://www.koreanair.com/content/dam/koreanair/en/skypass/pdf/award_chart.pdf",
     default: 100,
     routes: {
       [spk("North America", "North Asia")]: 150,

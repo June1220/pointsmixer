@@ -16,6 +16,93 @@
 
 export const dynamicRangesAsOf = "2026-06-04";
 
+// Per-program blog sources for the weekly AI refresh.
+// Each entry lists multiple independent URLs to fetch and mine for cited
+// { miles, cashUSD } redemption examples. Order = fetch priority.
+// Publishers: TPG = The Points Guy, UP = Upgraded Points, OMAAT = One Mile at a Time
+export const dynamicRangeSources = {
+  "Flying Blue": [
+    { publisher: "TPG",   url: "https://thepointsguy.com/loyalty-programs/ultimate-guide-flying-blue/" },
+    { publisher: "UP",    url: "https://upgradedpoints.com/travel/airlines/air-france-klm/flying-blue-miles-guide/" },
+    { publisher: "OMAAT", url: "https://onemileatatime.com/guide/flying-blue-award-program/" },
+  ],
+  "American Airlines": [
+    { publisher: "TPG",   url: "https://thepointsguy.com/guide/american-airlines-award-chart/" },
+    { publisher: "UP",    url: "https://upgradedpoints.com/travel/airlines/american-airlines/aadvantage-miles-guide/" },
+    { publisher: "OMAAT", url: "https://onemileatatime.com/guide/american-airlines-aadvantage-award-program/" },
+  ],
+  "Delta": [
+    { publisher: "TPG",   url: "https://thepointsguy.com/guide/complete-guide-to-delta-skymiles/" },
+    { publisher: "UP",    url: "https://upgradedpoints.com/travel/airlines/delta-air-lines/skymiles-guide/" },
+    { publisher: "OMAAT", url: "https://onemileatatime.com/guide/delta-skymiles-award-program/" },
+  ],
+  "United": [
+    { publisher: "TPG",   url: "https://thepointsguy.com/guide/united-mileageplus-award-guide/" },
+    { publisher: "UP",    url: "https://upgradedpoints.com/travel/airlines/united-airlines/mileageplus-miles-guide/" },
+    { publisher: "OMAAT", url: "https://onemileatatime.com/guide/united-mileageplus-award-program/" },
+  ],
+  "Emirates": [
+    { publisher: "TPG",   url: "https://thepointsguy.com/guide/emirates-skywards-award-chart/" },
+    { publisher: "UP",    url: "https://upgradedpoints.com/travel/airlines/emirates/skywards-miles-guide/" },
+    { publisher: "OMAAT", url: "https://onemileatatime.com/guide/emirates-skywards-award-program/" },
+  ],
+  "Turkish": [
+    { publisher: "TPG",   url: "https://thepointsguy.com/guide/turkish-airlines-miles-smiles-guide/" },
+    { publisher: "UP",    url: "https://upgradedpoints.com/travel/airlines/turkish-airlines/miles-smiles-guide/" },
+    { publisher: "OMAAT", url: "https://onemileatatime.com/guide/turkish-airlines-miles-smiles-award-program/" },
+  ],
+  "Cathay Pacific": [
+    { publisher: "TPG",   url: "https://thepointsguy.com/guide/asia-miles-award-chart/" },
+    { publisher: "UP",    url: "https://upgradedpoints.com/travel/airlines/cathay-pacific/asia-miles-guide/" },
+    { publisher: "OMAAT", url: "https://onemileatatime.com/guide/cathay-pacific-asia-miles-award-program/" },
+  ],
+  "Qatar": [
+    { publisher: "TPG",   url: "https://thepointsguy.com/guide/qatar-airways-privilege-club-guide/" },
+    { publisher: "UP",    url: "https://upgradedpoints.com/travel/airlines/qatar-airways/privilege-club-guide/" },
+    { publisher: "OMAAT", url: "https://onemileatatime.com/guide/qatar-privilege-club-award-program/" },
+  ],
+  "Etihad": [
+    { publisher: "TPG",   url: "https://thepointsguy.com/guide/etihad-guest-award-chart/" },
+    { publisher: "UP",    url: "https://upgradedpoints.com/travel/airlines/etihad-airways/etihad-guest-guide/" },
+    { publisher: "OMAAT", url: "https://onemileatatime.com/guide/etihad-guest-award-program/" },
+  ],
+  "JetBlue": [
+    { publisher: "TPG",   url: "https://thepointsguy.com/guide/jetblue-trueblue-award-chart/" },
+    { publisher: "UP",    url: "https://upgradedpoints.com/travel/airlines/jetblue/trueblue-points-guide/" },
+  ],
+  "Finnair": [
+    { publisher: "TPG",   url: "https://thepointsguy.com/guide/finnair-plus-award-chart/" },
+    { publisher: "UP",    url: "https://upgradedpoints.com/travel/airlines/finnair/finnair-plus-guide/" },
+    { publisher: "OMAAT", url: "https://onemileatatime.com/guide/finnair-plus-award-program/" },
+  ],
+  "Southwest": [
+    { publisher: "TPG",   url: "https://thepointsguy.com/guide/southwest-airlines-rapid-rewards-guide/" },
+    { publisher: "UP",    url: "https://upgradedpoints.com/travel/airlines/southwest-airlines/rapid-rewards-guide/" },
+  ],
+  "Virgin Atlantic": [
+    { publisher: "TPG",   url: "https://thepointsguy.com/guide/virgin-atlantic-flying-club-award-chart/" },
+    { publisher: "UP",    url: "https://upgradedpoints.com/travel/airlines/virgin-atlantic/flying-club-miles-guide/" },
+    { publisher: "OMAAT", url: "https://onemileatatime.com/guide/virgin-atlantic-flying-club-award-program/" },
+  ],
+  "Aeromexico": [
+    { publisher: "TPG",   url: "https://thepointsguy.com/guide/aeromexico-club-premier-award-chart/" },
+    { publisher: "UP",    url: "https://upgradedpoints.com/travel/airlines/aeromexico/club-premier-guide/" },
+  ],
+  "Hawaiian": [
+    { publisher: "TPG",   url: "https://thepointsguy.com/guide/hawaiian-airlines-mileageplan-award-chart/" },
+    { publisher: "UP",    url: "https://upgradedpoints.com/travel/airlines/hawaiian-airlines/hawaiianmiles-guide/" },
+  ],
+  "Spirit": [
+    { publisher: "TPG",   url: "https://thepointsguy.com/guide/spirit-airlines-free-spirit-award-chart/" },
+    { publisher: "UP",    url: "https://upgradedpoints.com/travel/airlines/spirit-airlines/free-spirit-guide/" },
+  ],
+  "EVA Air": [
+    { publisher: "TPG",   url: "https://thepointsguy.com/guide/eva-air-infinity-mileagelands-award-chart/" },
+    { publisher: "UP",    url: "https://upgradedpoints.com/travel/airlines/eva-air/infinity-mileagelands-guide/" },
+    { publisher: "OMAAT", url: "https://onemileatatime.com/guide/eva-air-infinity-mileagelands-award-program/" },
+  ],
+};
+
 const pk = (a, b) => [a, b].sort().join(" | ");
 
 export const dynamicRanges = {

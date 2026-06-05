@@ -13,6 +13,18 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 export const fareBandsAsOf = "2026-06-04";
+// Sources used to derive these historical ranges (NOT live prices):
+//   Google Flights price history graphs (flights.google.com) — seasonal low/high
+//   Hopper historical fare database (hopper.com/airline-industry-research)
+//   Bureau of Transportation Statistics DB1B fare data (bts.gov/topics/airlines-and-airports)
+//   Scott's Cheap Flights fare alerts archive (app.scottscheapflights.com)
+// All ranges are one-way economy/business medians from 2023–2026 published reports.
+// Refresh: ask Claude to fetch Google Flights price history for each region pair.
+export const fareBandsSources = [
+  { publisher: "Google Flights price history",         url: "https://flights.google.com",                                          date: "2026-06-04" },
+  { publisher: "Hopper Airline Industry Research",     url: "https://hopper.com/airline-industry-research",                        date: "2026-06-04" },
+  { publisher: "BTS DB1B quarterly fare data",         url: "https://www.bts.gov/topics/airlines-and-airports/fare-data",          date: "2026-06-04" },
+];
 
 // pairKey must match awardCharts.js pairKey function (sorted | joined).
 const pk = (a, b) => [a, b].sort().join(" | ");
