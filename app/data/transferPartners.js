@@ -99,12 +99,22 @@ export const defaultAwardPegCents = 1.3;
 
 // Redemption-quality thresholds, in cents per airline mile. Determines the
 // verdict shown when a cash price is entered ("excellent / solid / fair / weak").
+// Thresholds vary by cabin: international business/first awards should deliver
+// higher cpp to be considered "great" because cash prices are much higher.
 // These are judgment calls about what counts as a good award — edit on request.
 export const redemptionTiers = {
-  great: 2.2, // >= this ¢/mile → excellent
-  good: 1.6, // >= this        → solid
-  fair: 1.2, // >= this        → fair; below → weak (consider paying cash)
+  economy:  { great: 1.8, good: 1.4, fair: 1.0 },
+  premium:  { great: 2.0, good: 1.5, fair: 1.1 },
+  business: { great: 2.5, good: 1.8, fair: 1.3 },
+  first:    { great: 3.0, good: 2.2, fair: 1.5 },
 };
+export function getTiers(cabin) {
+  const c = String(cabin || "economy").toLowerCase();
+  if (c.includes("first")) return redemptionTiers.first;
+  if (c.includes("business")) return redemptionTiers.business;
+  if (c.includes("premium")) return redemptionTiers.premium;
+  return redemptionTiers.economy;
+}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // CARRIER-IMPOSED SURCHARGES (YQ/YR fees)

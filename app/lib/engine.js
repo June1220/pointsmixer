@@ -7,14 +7,14 @@ import {
   defaultPointValue,
   transferIncrements,
   exciseFeeCap,
-  redemptionTiers,
+  getTiers,
   carrierSurcharges,
   valuationsAsOf,
   lastUpdated,
 } from "../data/transferPartners";
 import { judgeAward } from "./awardEstimator";
 import { getCashBallpark } from "../data/fareBands";
-import { regionForAirport, pairKey } from "../data/awardCharts";
+import { regionForAirport, pairKey, programRtOnly } from "../data/awardCharts";
 
 // Estimate carrier-imposed surcharge (YQ/YR) in USD for an award booking.
 function getCarrierSurcharge(airline, origin, destination) {
@@ -118,7 +118,7 @@ export function computeBlueprint({ program, pointsRequired, balances, directBala
     r.directHeld = directHeld;
     r.directApplied = directApplied;
     r.valueSummary = summarize([], balances, []);
-    r.redemption = redemptionVerdict(cash, needed, 0, surcharge.amount);
+    r.redemption = redemptionVerdict(cash, needed, 0, surcharge.amount, cabin);
     r.surcharge = surcharge;
     return r;
   }
@@ -167,7 +167,7 @@ export function computeBlueprint({ program, pointsRequired, balances, directBala
     r.allianceMiles = allianceMiles;
     r.directHeld = directHeld;
     r.directApplied = directApplied;
-    r.redemption = redemptionVerdict(cash, needed, 0, surcharge.amount);
+    r.redemption = redemptionVerdict(cash, needed, 0, surcharge.amount, cabin);
     r.surcharge = surcharge;
     return r;
   }
@@ -213,7 +213,7 @@ export function computeBlueprint({ program, pointsRequired, balances, directBala
   }
 
   const valueSummary = summarize(transfers, balances, capacity);
-  const redemption = redemptionVerdict(cash, needed, valueSummary.totalCostUSD, surcharge.amount);
+  const redemption = redemptionVerdict(cash, needed, valueSummary.totalCostUSD, surcharge.amount, cabin);
 
   // ── Rationale ───────────────────────────────────────────────────────────────
   const directPrefix =
@@ -303,6 +303,14 @@ export function computeBlueprint({ program, pointsRequired, balances, directBala
     warns.push(`${airline} typically charges ~$${surcharge.amount.toLocaleString()} in carrier surcharges (YQ fees) on this route — you pay this in cash on top of the miles.${surcharge.note ? ` ${surcharge.note}` : ""}`);
   }
 
+  // RT-only programs (e.g. ANA partner awards): hard flag so UI can show a
+  // prominent callout. The user may be quoting a one-way miles cost that is
+  // actually the round-trip total, which would double the transfer needed.
+  const rtOnly = programRtOnly(airline);
+  if (rtOnly) {
+    warns.unshift(`⚠ ${airline} requires ROUND-TRIP bookings for partner awards. The miles quoted above should be the round-trip total. If you entered a one-way price, you may need twice these miles. Confirm on the ${airline} website before transferring.`);
+  }
+
   return {
     isPossible: true,
     shortfall: 0,
@@ -314,6 +322,7 @@ export function computeBlueprint({ program, pointsRequired, balances, directBala
     valueSummary,
     redemption,
     surcharge,
+    rtOnly,
     awardQuality,
     fareQuality,
     rationale,
@@ -358,16 +367,13 @@ function summarize(transfers, balances, capacity) {
 
 // Is this award actually a good deal vs paying cash? Needs the ticket's cash price.
 // surchargeUSD = estimated carrier-imposed fees the traveler pays cash on top of miles.
-function redemptionVerdict(cash, needed, totalCostUSD, surchargeUSD = 0) {
+// cabin = used to select cabin-aware redemption thresholds (business/first need higher cpp).
+function redemptionVerdict(cash, needed, totalCostUSD, surchargeUSD = 0, cabin = "economy") {
   if (!cash || !needed) return null;
   const yq = Math.max(0, surchargeUSD || 0);
-  // Naive cpp ignores surcharges — shown for reference so users can compare to
-  // standard "cents per point" benchmarks they see on blogs.
+  const tiers = getTiers(cabin);
   const centsPerPoint = usd((cash / needed) * 100);
-  // Adjusted cpp: what your miles are truly worth after you account for the cash
-  // surcharge you still have to pay. This is the number the verdict keys on.
   const adjCpp = yq > 0 ? usd(((cash - yq) / needed) * 100) : centsPerPoint;
-  // Net savings = (cash you'd otherwise pay) − ($ value of points burned) − surcharge
   const netSavingsUSD = usd(cash - totalCostUSD - yq);
 
   let verdict, tone;
@@ -377,13 +383,13 @@ function redemptionVerdict(cash, needed, totalCostUSD, surchargeUSD = 0) {
   if (totalCostUSD > 0 && cash <= totalCostUSD + yq) {
     verdict = `At ${centsPerPoint}¢/mile${adjLabel} this award costs MORE than paying cash when you include the ~$${totalCostUSD.toLocaleString()} of points${yq > 0 ? ` + ~$${yq.toLocaleString()} in carrier fees` : ""} — paying the $${cash.toLocaleString()} cash fare and keeping your points is the better move.`;
     tone = "bad";
-  } else if (adjCpp >= redemptionTiers.great) {
+  } else if (adjCpp >= tiers.great) {
     verdict = `Excellent redemption: ${centsPerPoint}¢/mile${adjLabel}.${yqNote} netting ~$${netSavingsUSD.toLocaleString()} vs the cash fare. Transfer with confidence.`;
     tone = "great";
-  } else if (adjCpp >= redemptionTiers.good) {
+  } else if (adjCpp >= tiers.good) {
     verdict = `Solid redemption: ${centsPerPoint}¢/mile${adjLabel}.${yqNote} netting ~$${netSavingsUSD.toLocaleString()} vs the cash fare.`;
     tone = "good";
-  } else if (adjCpp >= redemptionTiers.fair) {
+  } else if (adjCpp >= tiers.fair) {
     verdict = `Fair redemption: ${centsPerPoint}¢/mile${adjLabel}.${yqNote} decent, but not a standout — make sure you're not better off saving these points for a higher-value award.`;
     tone = "fair";
   } else {

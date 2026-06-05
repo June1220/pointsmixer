@@ -834,7 +834,11 @@ function ResultCard({ r, onSelect }) {
           <span className={`rc-badge ${r.awardType === "own" ? "chart" : "heuristic"}`}>
             {awardTypeLabel(r.awardType)}
           </span>
-          <span className="rc-badge">{r.estBasis === "chart" ? "chart estimate" : "heuristic estimate"}</span>
+          <span className={`rc-badge${r.estConfidence === "low" ? " warn" : ""}`}>
+            {r.estBasis === "zone-chart" || r.estBasis === "distance-chart"
+              ? "chart estimate"
+              : r.estConfidence === "low" ? "rough estimate" : "heuristic estimate"}
+          </span>
           <span className={`rc-badge ${r.fundable ? "chart" : "no"}`}>
             {r.fundable ? "fundable" : "not enough points"}
           </span>
