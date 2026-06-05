@@ -290,7 +290,7 @@ export const programs = {
       "TAP Air Portugal": { ratio: 1 },
       Turkish: { ratio: 1 },
       // Capital One transfers to Virgin Red, which moves to Virgin Atlantic Flying Club.
-      "Virgin Atlantic": { ratio: 1, note: "Via Virgin Red → Virgin Atlantic Flying Club." },
+      "Virgin Atlantic": { ratio: 1, days: 3, note: "Via Virgin Red → Virgin Atlantic Flying Club. Allow 2–5 days." },
     },
   },
 
@@ -322,14 +322,14 @@ export const programs = {
     partners: {
       "Aer Lingus": { ratio: 1 },
       Aeroplan: { ratio: 1 },
-      "Alaska Airlines": { ratio: 1, note: "Via Atmos Rewards (Alaska + Hawaiian)." },
+      "Alaska Airlines": { ratio: 1, days: 2, note: "Via Atmos Rewards (Alaska + Hawaiian). Allow 1–3 days." },
       Avianca: { ratio: 1 },
       "British Airways": { ratio: 1 },
       "Cathay Pacific": { ratio: 1 },
       Emirates: { ratio: 1 },
       Etihad: { ratio: 1 },
       "Flying Blue": { ratio: 1 },
-      Hawaiian: { ratio: 1, note: "Via Atmos Rewards (Alaska + Hawaiian)." },
+      Hawaiian: { ratio: 1, days: 2, note: "Via Atmos Rewards (Alaska + Hawaiian). Allow 1–3 days." },
       Iberia: { ratio: 1 },
       "Japan Airlines": { ratio: 1 },
       Qatar: { ratio: 1 },

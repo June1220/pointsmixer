@@ -1287,9 +1287,18 @@ export function getDynamicRangeScaled(program, fromRegion, toRegion, cabin, orig
 
   // 2. Distance scaling
   if (distanceMi && regionAvgDistanceMi[pairK]) {
-    const scale = distanceMi / regionAvgDistanceMi[pairK];
+    const avgDist = regionAvgDistanceMi[pairK];
+    const scale = distanceMi / avgDist;
     const scaled = scaleRange(base, scale, cab);
-    return { ...scaled, basis: "distance-scaled", distanceMi: Math.round(distanceMi) };
+    // Flag when route distance is very different from regional average (>50% off).
+    // Linear scaling is a rough proxy — extreme outliers within a region pair may
+    // see different pricing than the model predicts.
+    let scaleNote = scaled.note || "";
+    if (scale > 1.5 || scale < 0.6) {
+      scaleNote += (scaleNote ? " " : "") +
+        `This route (~${Math.round(distanceMi).toLocaleString()} mi) is ${scale > 1.5 ? "much longer" : "much shorter"} than the regional average (~${avgDist.toLocaleString()} mi) — estimate may be less accurate.`;
+    }
+    return { ...scaled, note: scaleNote || scaled.note, basis: "distance-scaled", distanceMi: Math.round(distanceMi) };
   }
 
   // 3. Unscaled regional fallback

@@ -31,6 +31,9 @@ function tidy(miles) {
 }
 
 // Look up a Class A zone chart cell for (program, fromRegion, toRegion, cabin).
+// Returns { miles, premiumFallback } — premiumFallback=true when premium economy
+// was approximated from the economy chart (most programs don't publish a premium
+// economy saver level).
 function zoneChartMiles(program, fromRegion, toRegion, cabin) {
   const chart = zoneCharts[program];
   if (!chart) return null;
@@ -38,9 +41,12 @@ function zoneChartMiles(program, fromRegion, toRegion, cabin) {
   const cell = chart[key];
   if (!cell) return null;
   if (cabin === "premium") {
-    return cell.economy != null ? Math.round(cell.economy * 1.3) : null;
+    if (cell.premium != null) return { miles: cell.premium, premiumFallback: false };
+    if (cell.economy != null) return { miles: Math.round(cell.economy * 1.3), premiumFallback: true };
+    return null;
   }
-  return cell[cabin] ?? cell.business ?? cell.economy ?? null;
+  const miles = cell[cabin] ?? cell.business ?? cell.economy ?? null;
+  return miles != null ? { miles, premiumFallback: false } : null;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -63,19 +69,21 @@ export function estimateAwardCost({ program, origin, destination, cabin, cashPri
     const fromRegion = regionForAirport(origin);
     const toRegion   = regionForAirport(destination);
     if (fromRegion && toRegion) {
-      const rawMiles = zoneChartMiles(program, fromRegion, toRegion, cab);
-      if (rawMiles != null) {
-        // ANA partner awards are RT-only: stored value is the RT total.
-        // We return the RT total and set rtOnly so the judge can surface it.
+      const result = zoneChartMiles(program, fromRegion, toRegion, cab);
+      if (result != null) {
+        const { miles: rawMiles, premiumFallback } = result;
+        const premNote = premiumFallback
+          ? ` Note: ${program} doesn't publish a premium economy saver level — this is an estimate (~1.3× economy). Actual cost may differ.`
+          : "";
         return {
           points: tidy(rawMiles),
           basis: "zone-chart",
-          confidence: "high",
+          confidence: premiumFallback ? "medium" : "high",
           rtOnly,
           note: rtOnly
-            ? `Based on ${program}'s published partner ${cab} zone award for ${fromRegion} ↔ ${toRegion}. IMPORTANT: ${program} requires round-trip bookings for partner awards — this is the round-trip total.`
-            : `Based on ${program}'s published partner ${cab} saver level for ${fromRegion} ↔ ${toRegion}.`,
-          source: "awardtravelfinder.com/award-charts — verified 2026-06-04",
+            ? `Based on ${program}'s published partner ${cab} zone award for ${fromRegion} ↔ ${toRegion}. IMPORTANT: ${program} requires round-trip bookings for partner awards — this is the round-trip total.${premNote}`
+            : `Based on ${program}'s published partner ${cab} saver level for ${fromRegion} ↔ ${toRegion}.${premNote}`,
+          source: "awardtravelfinder.com/award-charts — verified 2026-06-05",
         };
       }
     }
@@ -93,7 +101,7 @@ export function estimateAwardCost({ program, origin, destination, cabin, cashPri
           confidence: "high",
           rtOnly: false,
           distanceMi: distMi,
-          note: `Based on ${program}'s published Avios distance band for a ~${distMi.toLocaleString()}-mile flight (${cab}).`,
+          note: `Based on ${program}'s published Avios distance band for a ~${distMi.toLocaleString()}-mile flight (${cab}). BA/Iberia use peak/off-peak pricing — actual cost may be 1.5–3× this baseline on peak travel dates (school holidays, summer, Christmas).`,
           source: "ba.com avios-flight-rewards chart — verified 2026-06-04",
         };
       }
