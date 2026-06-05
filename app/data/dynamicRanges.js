@@ -37,6 +37,9 @@ export const dynamicRanges = {
                   source: "thepointsguy.com/loyalty-programs/ultimate-guide-flying-blue Jun 2026" },
     },
     [pk("North America", "North Asia")]: {
+      economy:  { low: 35000, typical: 60000, high: 120000,
+                  note: "Routed via CDG/AMS. Economy Promo Rewards can drop to ~35k.",
+                  source: "thepointsguy.com/loyalty-programs/ultimate-guide-flying-blue Jun 2026" },
       business: { low: 60000, typical: 80000, high: 160000,
                   note: "Routed via CDG/AMS. Less predictable than Europe.",
                   source: "thepointsguy.com/loyalty-programs/ultimate-guide-flying-blue Jun 2026" },
@@ -90,11 +93,17 @@ export const dynamicRanges = {
                   source: "thepointsguy.com Jun 2026" },
     },
     [pk("North America", "Southeast Asia")]: {
+      economy:  { low: 40000, typical: 70000, high: 140000,
+                  note: "Routed via CDG/AMS.",
+                  source: "thepointsguy.com Jun 2026" },
       business: { low: 70000, typical: 100000, high: 200000,
                   note: "Routed via CDG/AMS.",
                   source: "thepointsguy.com Jun 2026" },
     },
     [pk("North America", "South Asia")]: {
+      economy:  { low: 40000, typical: 70000, high: 140000,
+                  note: "Routed via CDG/AMS.",
+                  source: "thepointsguy.com Jun 2026" },
       business: { low: 70000, typical: 100000, high: 200000,
                   note: "Routed via CDG/AMS.",
                   source: "thepointsguy.com Jun 2026" },
@@ -119,6 +128,9 @@ export const dynamicRanges = {
                   source: "thepointsguy.com Jun 2026" },
     },
     [pk("North America", "North Asia")]: {
+      economy:  { low: 30000, typical: 50000, high: 200000,
+                  note: "Partner economy (JL/CX) as low as 30k. Own AA metal to Asia can spike 200k+.",
+                  source: "thepointsguy.com Jun 2026" },
       business: { low: 60000, typical: 80000, high: 300000,
                   note: "JL/CX partner sweet spots around 60k–70k. Own AA metal and peak dates much higher.",
                   source: "thepointsguy.com Jun 2026" },
@@ -226,15 +238,21 @@ export const dynamicRanges = {
                   source: "awardwallet.com Jun 2026" },
     },
     [pk("Europe", "North Asia")]: {
+      economy:  { low: 45000, typical: 100000, high: 280000,
+                  source: "awardwallet.com Jun 2026" },
       business: { low: 80000, typical: 180000, high: 500000,
                   note: "Delta partners with Korean Air (KE). Dynamic pricing applies.",
                   source: "awardwallet.com Jun 2026" },
     },
     [pk("Europe", "Southeast Asia")]: {
+      economy:  { low: 45000, typical: 100000, high: 280000,
+                  source: "awardwallet.com Jun 2026" },
       business: { low: 80000, typical: 180000, high: 500000,
                   source: "awardwallet.com Jun 2026" },
     },
     [pk("North Asia", "Oceania")]: {
+      economy:  { low: 40000, typical: 90000, high: 250000,
+                  source: "awardwallet.com Jun 2026" },
       business: { low: 70000, typical: 160000, high: 450000,
                   source: "awardwallet.com Jun 2026" },
     },
@@ -254,6 +272,9 @@ export const dynamicRanges = {
                   source: "upgradedpoints.com Jun 2026" },
     },
     [pk("North America", "North Asia")]: {
+      economy:  { low: 35000, typical: 55000, high: 150000,
+                  note: "Own United metal to Japan/China/Korea. Saver levels visible; prices spike significantly at peak.",
+                  source: "upgradedpoints.com Jun 2026" },
       business: { low: 65000, typical: 90000, high: 220000,
                   source: "upgradedpoints.com Jun 2026" },
     },
@@ -351,11 +372,16 @@ export const dynamicRanges = {
                   source: "thepointsguy.com Jun 2026" },
     },
     [pk("North America", "Southeast Asia")]: {
+      economy:  { low: 60000, typical: 110000, high: 220000,
+                  note: "Via Dubai. Surcharges significant on all cabins.",
+                  source: "thepointsguy.com Jun 2026" },
       business: { low: 100000, typical: 180000, high: 350000,
                   note: "Via Dubai. Surcharges significant.",
                   source: "thepointsguy.com Jun 2026" },
     },
     [pk("Europe", "Middle East")]: {
+      economy:  { low: 20000, typical: 40000, high: 90000,
+                  source: "thepointsguy.com Jun 2026" },
       business: { low: 50000, typical: 90000, high: 200000,
                   source: "thepointsguy.com Jun 2026" },
     },
@@ -466,6 +492,9 @@ export const dynamicRanges = {
                   source: "upgradedpoints.com Jun 2026" },
     },
     [pk("North America", "North Asia")]: {
+      economy:  { low: 35000, typical: 60000, high: 130000,
+                  note: "Via IST hub. Economy often competitive vs other dynamic programs.",
+                  source: "upgradedpoints.com Jun 2026" },
       business: { low: 55000, typical: 90000, high: 180000,
                   source: "upgradedpoints.com Jun 2026" },
     },
@@ -653,11 +682,15 @@ export const dynamicRanges = {
   // Source: thepointsguy.com/loyalty-programs/qatar-privilege-club — Jun 2026
   "Qatar": {
     [pk("North America", "Middle East")]: {
+      economy:  { low: 40000, typical: 70000, high: 180000,
+                  source: "thepointsguy.com Jun 2026" },
       business: { low: 70000, typical: 120000, high: 250000,
                   note: "QSuites business class. Also bookable via Alaska Miles (sweet spot ~70k).",
                   source: "thepointsguy.com Jun 2026" },
     },
     [pk("North America", "Southeast Asia")]: {
+      economy:  { low: 50000, typical: 85000, high: 200000,
+                  source: "thepointsguy.com Jun 2026" },
       business: { low: 80000, typical: 140000, high: 300000,
                   note: "Via DOH. QSuites via Alaska Miles sometimes available at lower rates.",
                   source: "thepointsguy.com Jun 2026" },
@@ -767,10 +800,14 @@ export const dynamicRanges = {
   // Source: thepointsguy.com/loyalty-programs/etihad-guest — Jun 2026
   "Etihad": {
     [pk("North America", "Middle East")]: {
+      economy:  { low: 45000, typical: 80000, high: 200000,
+                  source: "thepointsguy.com Jun 2026" },
       business: { low: 75000, typical: 130000, high: 260000,
                   source: "thepointsguy.com Jun 2026" },
     },
     [pk("Europe", "Middle East")]: {
+      economy:  { low: 20000, typical: 38000, high: 90000,
+                  source: "thepointsguy.com Jun 2026" },
       business: { low: 40000, typical: 75000, high: 160000,
                   source: "thepointsguy.com Jun 2026" },
     },
@@ -1001,6 +1038,9 @@ export const dynamicRanges = {
                   source: "thepointsguy.com Jun 2026" },
     },
     [pk("North Asia", "Southeast Asia")]: {
+      economy:  { low: 15000, typical: 28000, high: 70000,
+                  note: "EVA Air short-haul within Asia. TPE hub.",
+                  source: "thepointsguy.com Jun 2026" },
       business: { low: 25000, typical: 45000, high: 100000,
                   source: "thepointsguy.com Jun 2026" },
     },
