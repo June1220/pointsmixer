@@ -15,7 +15,7 @@ export async function POST(req) {
     return Response.json({ error: "Invalid request body." }, { status: 400 });
   }
 
-  const { program, pointsRequired, balances, directBalances, cashPrice } = body || {};
+  const { program, pointsRequired, balances, directBalances, cashPrice, origin, destination, cabin } = body || {};
 
   if (!program || typeof program !== "string" || !program.trim()) {
     return Response.json(
@@ -40,6 +40,9 @@ export async function POST(req) {
     balances,
     directBalances: directBalances && typeof directBalances === "object" ? directBalances : {},
     cashPrice: Number(cashPrice) || 0,
+    origin: typeof origin === "string" ? origin.toUpperCase().trim() : undefined,
+    destination: typeof destination === "string" ? destination.toUpperCase().trim() : undefined,
+    cabin: cabin || "economy",
   });
 
   return Response.json(result);

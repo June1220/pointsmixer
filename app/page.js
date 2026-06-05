@@ -13,12 +13,15 @@ import {
   ClipboardList,
   Receipt,
   ChevronDown,
+  ChevronLeft,
+  ExternalLink,
   Ticket,
   Trash2,
   Plus,
   Users,
   Gauge,
   ArrowLeftRight,
+  Search,
 } from "lucide-react";
 
 // Bank metadata — keys mirror the labels the backend emits in `transfers`.
@@ -42,6 +45,39 @@ const ratioLabel = (r) => {
 
 // Maps the engine's verdict tone → result panel style modifier.
 const VERDICT_CLASS = { great: "v-great", good: "v-good", fair: "v-fair", bad: "v-bad" };
+
+const CABINS = [
+  { key: "economy", label: "Economy" },
+  { key: "premium", label: "Premium econ." },
+  { key: "business", label: "Business" },
+  { key: "first", label: "First" },
+];
+const SORTS = [
+  { key: "value", label: "Best value (¢/mi)" },
+  { key: "cost", label: "Lowest $ of points" },
+  { key: "points", label: "Fewest miles" },
+];
+
+// Default search date ≈ 90 days out, YYYY-MM-DD.
+function defaultDate() {
+  const d = new Date();
+  d.setDate(d.getDate() + 90);
+  return d.toISOString().slice(0, 10);
+}
+
+// "2026-09-12T07:30:00" → "Sep 12, 07:30"
+function fmtWhen(iso) {
+  if (!iso) return "";
+  const d = new Date(iso);
+  if (isNaN(d)) return "";
+  return d.toLocaleString("en-US", {
+    month: "short",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  });
+}
 
 function Field({ label, opt, hint, children }) {
   return (
@@ -67,9 +103,28 @@ function ValueStat({ label, value, sub, green }) {
 }
 
 export default function Page() {
-  const [program, setProgram] = useState("Flying Blue");
-  const [pointsRequired, setPointsRequired] = useState(150000);
-  const [cashPrice, setCashPrice] = useState(4200);
+  // "search" = destination-first funnel · "manual" = bring-your-own-flight.
+  const [mode, setMode] = useState("manual");
+
+  // ── Manual ("I know my flight") mode state ──────────────────────────────
+  const [program, setProgram] = useState("ANA");
+  const [pointsRequired, setPointsRequired] = useState(88000);
+  const [cashPrice, setCashPrice] = useState(3200);
+  const [mOrigin, setMOrigin] = useState("JFK");
+  const [mDest, setMDest] = useState("LIS");
+  const [mCabin, setMCabin] = useState("business");
+
+  // ── Flight-search funnel state ──────────────────────────────────────────
+  const [sOrigin, setSOrigin] = useState("JFK");
+  const [sDest, setSDest] = useState("LIS");
+  const [sDate, setSDate] = useState(defaultDate());
+  const [sCabin, setSCabin] = useState("business");
+  const [sAdults, setSAdults] = useState(1);
+  const [sSort, setSSort] = useState("value");
+  const [searchLoading, setSearchLoading] = useState(false);
+  const [searchError, setSearchError] = useState(null);
+  const [searchData, setSearchData] = useState(null); // { mock, query, results }
+  const [selected, setSelected] = useState(null); // a chosen ranked candidate
   const [balances, setBalances] = useState({
     "Chase UR": 120000,
     "Amex MR": 90000,
@@ -142,6 +197,9 @@ export default function Page() {
           balances,
           directBalances,
           cashPrice: Number(cashPrice) || 0,
+          origin: mOrigin.trim().toUpperCase() || undefined,
+          destination: mDest.trim().toUpperCase() || undefined,
+          cabin: mCabin,
         }),
       });
       const data = await res.json();
@@ -156,6 +214,139 @@ export default function Page() {
       setLoading(false);
     }
   }
+
+  async function handleSearch() {
+    setSearchError(null);
+    setSearchData(null);
+    setSelected(null);
+    const code = (v) => /^[A-Za-z]{3}$/.test(String(v || "").trim());
+    if (!code(sOrigin) || !code(sDest)) {
+      setSearchError("Enter 3-letter airport codes for origin and destination (e.g. JFK, LIS).");
+      return;
+    }
+    if (sOrigin.trim().toUpperCase() === sDest.trim().toUpperCase()) {
+      setSearchError("Origin and destination must differ.");
+      return;
+    }
+    setSearchLoading(true);
+    try {
+      const res = await fetch("/api/search", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          origin: sOrigin.trim().toUpperCase(),
+          destination: sDest.trim().toUpperCase(),
+          date: sDate,
+          cabin: sCabin,
+          adults: Number(sAdults) || 1,
+          sort: sSort,
+          balances,
+          directBalances,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) setSearchError(data.error || "Search failed.");
+      else setSearchData(data);
+    } catch (e) {
+      setSearchError("Network error — is the dev server running?");
+    } finally {
+      setSearchLoading(false);
+    }
+  }
+
+  // Treasury + direct-miles cards are shared by both modes (rendered inline so
+  // inputs keep focus across re-renders — these are plain functions, not components).
+  const treasuryCard = () => (
+    <section className="card">
+      <div className="card-head">
+        <div className="card-title">
+          <Wallet className="ic" size={18} /> Your point treasury
+        </div>
+        <p className="card-desc">Enter your current balance in each program.</p>
+      </div>
+      <div>
+        {BANKS.map((bank) => (
+          <div key={bank.key} className="balrow">
+            <span className="bank-dot" style={{ background: bank.tone }} />
+            <span className="bank-name">
+              {bank.label}
+              {pointValues[bank.key] != null && (
+                <span className="bank-cpp">~{(pointValues[bank.key] * 100).toFixed(2)}¢/pt</span>
+              )}
+            </span>
+            <input
+              type="number"
+              className="input right bal-input tnum"
+              value={balances[bank.key]}
+              min={0}
+              step={1000}
+              onChange={(e) => setBalance(bank.key, e.target.value)}
+            />
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+
+  const directMilesCard = () => (
+    <section className="card">
+      <div className="card-head">
+        <div className="card-title">
+          <Ticket className="ic" size={18} /> Miles you already have
+        </div>
+        <p className="card-desc">
+          Hold miles directly in an airline program (e.g. AAdvantage from a Citi AA card)? Add
+          them — they’re used first, with no transfer.
+        </p>
+      </div>
+
+      {directRows.length > 0 && (
+        <div>
+          {directRows.map((row) => (
+            <div key={row.id} className="airline-row">
+              <div className="select-wrap" style={{ flex: 1 }}>
+                <select
+                  className="select"
+                  value={row.airline}
+                  onChange={(e) => updateDirectRow(row.id, { airline: e.target.value })}
+                >
+                  {allAirlines
+                    .filter((a) => a === row.airline || !usedAirlines.includes(a))
+                    .map((a) => (
+                      <option key={a} value={a}>
+                        {a}
+                      </option>
+                    ))}
+                </select>
+                <ChevronDown className="chev" size={16} />
+              </div>
+              <input
+                type="number"
+                className="input right tnum"
+                style={{ width: 116 }}
+                value={row.amount}
+                min={0}
+                step={1000}
+                onChange={(e) =>
+                  updateDirectRow(row.id, {
+                    amount:
+                      e.target.value === "" ? 0 : Math.max(0, parseInt(e.target.value, 10) || 0),
+                  })
+                }
+              />
+              <button className="icon-btn" aria-label="Remove" onClick={() => removeDirectRow(row.id)}>
+                <Trash2 size={16} />
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+
+      <button className="add-row" onClick={addDirectRow} disabled={availableAirlines.length === 0}>
+        <Plus size={15} /> Add airline balance
+      </button>
+    </section>
+  );
 
   return (
     <>
@@ -178,200 +369,565 @@ export default function Page() {
 
       <main className="shell">
         <div className="intro">
-          <h1>Fund your award flight, the optimal way.</h1>
+          <h1>Is this award worth it? How to fund it?</h1>
           <p>
-            You found the seat. Tell PointsMixer what it costs and which points you hold — it
-            computes the exact, lowest-value-cost way to transfer your way there.
+            PointsMixer is a free, no-API award-travel companion. It judges whether a
+            mileage cost is good or high (vs. published saver charts), tells you if the cash
+            price is typical for the route, then computes the optimal way to transfer your
+            credit-card points to fund it — all in one place.
           </p>
+          <div style={{ display:"flex", gap:18, marginTop:12, flexWrap:"wrap", fontSize:13, color:"var(--muted)" }}>
+            <span><b style={{color:"var(--ink)"}}>① Find the flight</b> — use Google Flights ↗</span>
+            <span><b style={{color:"var(--ink)"}}>② Judge the price here</b> — is it a good deal?</span>
+            <span><b style={{color:"var(--ink)"}}>③ Transfer plan here</b> — optimal bank → miles</span>
+          </div>
         </div>
 
-        <div className="grid">
-          {/* ── LEFT: inputs ─────────────────────────────────────────────── */}
-          <div className="stack">
-            <section className="card">
-              <div className="card-head">
-                <div className="card-title">
-                  <Plane className="ic" size={18} /> Target flight
+        <div className="tabs" role="tablist">
+          <button
+            role="tab"
+            className={`tab${mode === "search" ? " on" : ""}`}
+            onClick={() => setMode("search")}
+          >
+            Live search (optional)
+          </button>
+          <button
+            role="tab"
+            className={`tab${mode === "manual" ? " on" : ""}`}
+            onClick={() => setMode("manual")}
+          >
+            Judge &amp; plan a flight
+          </button>
+        </div>
+
+        {mode === "search" ? (
+          <div className="grid">
+            {/* ── LEFT: search inputs ─────────────────────────────────────── */}
+            <div className="stack">
+              <section className="card">
+                <div className="card-head">
+                  <div className="card-title">
+                    <Search className="ic" size={18} /> Where to?
+                  </div>
+                  <p className="card-desc">Enter a route and date. Airport codes (IATA), e.g. JFK → LIS.</p>
                 </div>
-                <p className="card-desc">Already confirmed your award seat? Enter what it costs.</p>
-              </div>
 
-              <Field label="Airline program">
-                <div className="select-wrap">
-                  <select
-                    className="select"
-                    value={program}
-                    onChange={(e) => setProgram(e.target.value)}
-                  >
-                    {allAirlines.map((a) => (
-                      <option key={a} value={a}>
-                        {a}
-                      </option>
-                    ))}
-                  </select>
-                  <ChevronDown className="chev" size={16} />
+                <div className="route-grid">
+                  <Field label="From">
+                    <input
+                      className="input up"
+                      value={sOrigin}
+                      maxLength={3}
+                      placeholder="JFK"
+                      onChange={(e) => setSOrigin(e.target.value.toUpperCase())}
+                    />
+                  </Field>
+                  <Field label="To">
+                    <input
+                      className="input up"
+                      value={sDest}
+                      maxLength={3}
+                      placeholder="LIS"
+                      onChange={(e) => setSDest(e.target.value.toUpperCase())}
+                    />
+                  </Field>
                 </div>
-              </Field>
 
-              <Field label="Total points required">
-                <input
-                  type="number"
-                  className="input lg tnum"
-                  value={pointsRequired}
-                  min={0}
-                  step={1000}
-                  onChange={(e) =>
-                    setPointsRequired(e.target.value === "" ? "" : parseInt(e.target.value, 10) || 0)
-                  }
-                />
-              </Field>
-
-              <Field
-                label="Cash price of this ticket"
-                opt
-                hint="Lets us tell you if this award is actually worth it vs. paying cash."
-              >
-                <div className="money-wrap">
-                  <span className="dollar">$</span>
+                <Field label="Departure date">
                   <input
-                    type="number"
+                    type="date"
                     className="input tnum"
-                    value={cashPrice}
-                    min={0}
-                    step={50}
-                    placeholder="e.g. 4200"
-                    onChange={(e) =>
-                      setCashPrice(e.target.value === "" ? "" : parseInt(e.target.value, 10) || 0)
-                    }
+                    value={sDate}
+                    onChange={(e) => setSDate(e.target.value)}
                   />
-                </div>
-              </Field>
-            </section>
+                </Field>
 
-            <section className="card">
-              <div className="card-head">
-                <div className="card-title">
-                  <Wallet className="ic" size={18} /> Your point treasury
-                </div>
-                <p className="card-desc">Enter your current balance in each program.</p>
-              </div>
-              <div>
-                {BANKS.map((bank) => (
-                  <div key={bank.key} className="balrow">
-                    <span className="bank-dot" style={{ background: bank.tone }} />
-                    <span className="bank-name">
-                      {bank.label}
-                      {pointValues[bank.key] != null && (
-                        <span className="bank-cpp">
-                          ~{(pointValues[bank.key] * 100).toFixed(2)}¢/pt
-                        </span>
-                      )}
-                    </span>
+                <div className="route-grid">
+                  <Field label="Cabin">
+                    <div className="select-wrap">
+                      <select className="select" value={sCabin} onChange={(e) => setSCabin(e.target.value)}>
+                        {CABINS.map((c) => (
+                          <option key={c.key} value={c.key}>
+                            {c.label}
+                          </option>
+                        ))}
+                      </select>
+                      <ChevronDown className="chev" size={16} />
+                    </div>
+                  </Field>
+                  <Field label="Travelers" hint="One-way search.">
                     <input
                       type="number"
-                      className="input right bal-input tnum"
-                      value={balances[bank.key]}
+                      className="input tnum"
+                      value={sAdults}
+                      min={1}
+                      max={9}
+                      onChange={(e) => setSAdults(Math.max(1, parseInt(e.target.value, 10) || 1))}
+                    />
+                  </Field>
+                </div>
+
+                <Field label="Rank by" hint="Award mile costs are estimates — always confirm live space and price before transferring.">
+                  <div className="select-wrap">
+                    <select className="select" value={sSort} onChange={(e) => setSSort(e.target.value)}>
+                      {SORTS.map((s) => (
+                        <option key={s.key} value={s.key}>
+                          {s.label}
+                        </option>
+                      ))}
+                    </select>
+                    <ChevronDown className="chev" size={16} />
+                  </div>
+                </Field>
+              </section>
+
+              {treasuryCard()}
+              {directMilesCard()}
+
+              <button className="btn-primary" onClick={handleSearch} disabled={searchLoading}>
+                {searchLoading ? (
+                  <>
+                    <Loader2 size={18} className="animate-spin" /> Searching…
+                  </>
+                ) : (
+                  <>
+                    <Search size={18} /> Find best ways to fly
+                  </>
+                )}
+              </button>
+            </div>
+
+            {/* ── RIGHT: ranked results / drill-down ──────────────────────── */}
+            <div className="results-col">
+              {selected ? (
+                <div className="panel">
+                  <button className="back-btn" onClick={() => setSelected(null)}>
+                    <ChevronLeft size={16} /> Back to results
+                  </button>
+                  <Blueprint loading={false} error={null} result={selected.blueprint} />
+                </div>
+              ) : (
+                <SearchResults
+                  loading={searchLoading}
+                  error={searchError}
+                  data={searchData}
+                  onSelect={setSelected}
+                />
+              )}
+            </div>
+          </div>
+        ) : (
+          <div className="grid">
+            {/* ── LEFT: manual inputs ─────────────────────────────────────── */}
+            <div className="stack">
+              <section className="card">
+                <div className="card-head">
+                  <div className="card-title">
+                    <Plane className="ic" size={18} /> Target flight
+                  </div>
+                  <p className="card-desc">Already confirmed your award seat? Enter what it costs.</p>
+                </div>
+
+                {/* Route — enables the award-quality baseline comparison */}
+                <div className="route-grid">
+                  <Field label="From (airport code)" hint="e.g. JFK, LAX, ORD">
+                    <input
+                      className="input up"
+                      value={mOrigin}
+                      maxLength={3}
+                      placeholder="JFK"
+                      onChange={(e) => setMOrigin(e.target.value.toUpperCase())}
+                    />
+                  </Field>
+                  <Field label="To (airport code)" hint="e.g. LIS, LHR, NRT">
+                    <input
+                      className="input up"
+                      value={mDest}
+                      maxLength={3}
+                      placeholder="LIS"
+                      onChange={(e) => setMDest(e.target.value.toUpperCase())}
+                    />
+                  </Field>
+                </div>
+
+                <Field label="Cabin">
+                  <div className="select-wrap">
+                    <select className="select" value={mCabin} onChange={(e) => setMCabin(e.target.value)}>
+                      {CABINS.map((c) => (
+                        <option key={c.key} value={c.key}>{c.label}</option>
+                      ))}
+                    </select>
+                    <ChevronDown className="chev" size={16} />
+                  </div>
+                </Field>
+
+                <Field label="Redemption program">
+                  <div className="select-wrap">
+                    <select className="select" value={program} onChange={(e) => setProgram(e.target.value)}>
+                      {allAirlines.map((a) => (
+                        <option key={a} value={a}>{a}</option>
+                      ))}
+                    </select>
+                    <ChevronDown className="chev" size={16} />
+                  </div>
+                </Field>
+
+                <Field label="Points quoted" hint="How many miles/points the airline is asking for this award.">
+                  <input
+                    type="number"
+                    className="input lg tnum"
+                    value={pointsRequired}
+                    min={0}
+                    step={1000}
+                    onChange={(e) =>
+                      setPointsRequired(e.target.value === "" ? "" : parseInt(e.target.value, 10) || 0)
+                    }
+                  />
+                </Field>
+
+                <Field
+                  label="Cash price of this ticket"
+                  opt
+                  hint="Enables the 'is this award worth it vs cash?' verdict."
+                >
+                  <div className="money-wrap">
+                    <span className="dollar">$</span>
+                    <input
+                      type="number"
+                      className="input tnum"
+                      value={cashPrice}
                       min={0}
-                      step={1000}
-                      onChange={(e) => setBalance(bank.key, e.target.value)}
+                      step={50}
+                      placeholder="e.g. 3200"
+                      onChange={(e) =>
+                        setCashPrice(e.target.value === "" ? "" : parseInt(e.target.value, 10) || 0)
+                      }
                     />
                   </div>
-                ))}
-              </div>
-            </section>
+                </Field>
+              </section>
 
-            <section className="card">
-              <div className="card-head">
-                <div className="card-title">
-                  <Ticket className="ic" size={18} /> Miles you already have
-                </div>
-                <p className="card-desc">
-                  Hold miles directly in an airline program (e.g. AAdvantage from a Citi AA card)?
-                  Add them — they’re used first, with no transfer.
-                </p>
-              </div>
+              {treasuryCard()}
+              {directMilesCard()}
 
-              {directRows.length > 0 && (
-                <div>
-                  {directRows.map((row) => (
-                    <div key={row.id} className="airline-row">
-                      <div className="select-wrap" style={{ flex: 1 }}>
-                        <select
-                          className="select"
-                          value={row.airline}
-                          onChange={(e) => updateDirectRow(row.id, { airline: e.target.value })}
-                        >
-                          {allAirlines
-                            .filter((a) => a === row.airline || !usedAirlines.includes(a))
-                            .map((a) => (
-                              <option key={a} value={a}>
-                                {a}
-                              </option>
-                            ))}
-                        </select>
-                        <ChevronDown className="chev" size={16} />
-                      </div>
-                      <input
-                        type="number"
-                        className="input right tnum"
-                        style={{ width: 116 }}
-                        value={row.amount}
-                        min={0}
-                        step={1000}
-                        onChange={(e) =>
-                          updateDirectRow(row.id, {
-                            amount:
-                              e.target.value === ""
-                                ? 0
-                                : Math.max(0, parseInt(e.target.value, 10) || 0),
-                          })
-                        }
-                      />
-                      <button
-                        className="icon-btn"
-                        aria-label="Remove"
-                        onClick={() => removeDirectRow(row.id)}
-                      >
-                        <Trash2 size={16} />
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              )}
-
-              <button
-                className="add-row"
-                onClick={addDirectRow}
-                disabled={availableAirlines.length === 0}
-              >
-                <Plus size={15} /> Add airline balance
+              <button className="btn-primary" onClick={handleCalculate} disabled={loading}>
+                {loading ? (
+                  <>
+                    <Loader2 size={18} className="animate-spin" /> Calculating…
+                  </>
+                ) : (
+                  <>
+                    <Calculator size={18} /> Calculate transfer blueprint
+                  </>
+                )}
               </button>
-            </section>
+            </div>
 
-            <button className="btn-primary" onClick={handleCalculate} disabled={loading}>
-              {loading ? (
-                <>
-                  <Loader2 size={18} className="animate-spin" /> Calculating…
-                </>
-              ) : (
-                <>
-                  <Calculator size={18} /> Calculate transfer blueprint
-                </>
-              )}
-            </button>
+            {/* ── RIGHT: results ───────────────────────────────────────────── */}
+            <div className="results-col">
+              <Blueprint loading={loading} error={error} result={result} />
+            </div>
           </div>
-
-          {/* ── RIGHT: results ───────────────────────────────────────────── */}
-          <div className="results-col">
-            <Blueprint loading={loading} error={error} result={result} />
-          </div>
-        </div>
+        )}
       </main>
     </>
   );
 }
 
+// ── Search results list (ranked candidates) ─────────────────────────────────
+function SearchResults({ loading, error, data, onSelect }) {
+  if (loading) {
+    return (
+      <div className="panel">
+        <div className="empty">
+          <div className="spinner" style={{ marginBottom: 18 }} />
+          <h3>Searching flights & estimating awards</h3>
+          <p>Finding routes, then pricing each loyalty program.</p>
+        </div>
+      </div>
+    );
+  }
+  if (error) {
+    return (
+      <div className="panel">
+        <div className="note-box" style={{ background: "var(--neg-soft)", borderColor: "var(--neg-line)" }}>
+          <AlertTriangle size={18} style={{ color: "var(--neg)", flex: "none" }} />
+          <div>
+            <p className="note-title">Search failed</p>
+            <p className="note-body" style={{ color: "var(--neg)" }}>{error}</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+  if (!data) {
+    return (
+      <div className="panel">
+        <div className="empty">
+          <div className="ring">
+            <Search size={22} />
+          </div>
+          <h3>Ranked options appear here</h3>
+          <p>Enter a route and date, then search to compare points vs cash across airlines.</p>
+        </div>
+      </div>
+    );
+  }
+  if (data.needsKey) {
+    return (
+      <div className="panel">
+        <div className="empty">
+          <div className="ring">
+            <Plane size={22} />
+          </div>
+          <h3>Connect a flight API to search</h3>
+          <p>
+            Real fares come from Duffel. Add <code>DUFFEL_ACCESS_TOKEN</code> to{" "}
+            <code>.env.local</code> (sign up free at duffel.com → Developers → Access tokens),
+            then restart. We don’t fake flights.
+          </p>
+        </div>
+      </div>
+    );
+  }
+  if (!data.results.length) {
+    return (
+      <div className="panel">
+        <div className="empty">
+          <div className="ring">
+            <Plane size={22} />
+          </div>
+          <h3>No fundable options found</h3>
+          <p>
+            We couldn’t map your points to a program that books this route, or no fares came back.
+            Try another date, cabin, or a nearby airport.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="panel fade">
+      <div className="est-flag">
+        <Info className="ic" size={15} />
+        <span>
+          <b>Award miles are estimates.</b> Cash fares are live; points costs are modeled from
+          published charts/heuristics, not real-time award space. <b>Own-airline</b> awards are
+          more reliable than <b>alliance-partner</b> estimates — confirm space and price on the
+          airline site before transferring.
+        </span>
+      </div>
+
+      <div className="results-head">
+        <p className="sec-label" style={{ margin: 0 }}>
+          {data.query.origin} → {data.query.destination} · {data.query.date}
+        </p>
+        <span className="count">{data.results.length} flights</span>
+      </div>
+
+      {data.results.map((r, i) => (
+        <ResultCard key={i} r={r} onSelect={onSelect} />
+      ))}
+    </div>
+  );
+}
+
+function awardTypeLabel(t) {
+  return t === "own" ? "own-airline award" : "alliance-partner estimate";
+}
+
+function ResultCard({ r, onSelect }) {
+  const tone = VERDICT_CLASS[r.verdictTone] || "";
+  return (
+    <div className="rc-wrap">
+      <button className={`rc${r.fundable ? "" : " dim"}`} onClick={() => onSelect(r)}>
+        <div className="rc-top">
+          <div>
+            <p className="rc-airline">
+              {r.carrierName}{" "}
+              <span style={{ color: "var(--faint)", fontWeight: 500 }}>· book via {r.program}</span>
+            </p>
+            <p className="rc-route">
+              {r.stops === 0 ? "Nonstop" : `${r.stops} stop${r.stops > 1 ? "s" : ""}`}
+              {r.depart && <> · {fmtWhen(r.depart)}</>}
+              {r.mixedAlliance && <> · mixed carriers</>}
+            </p>
+          </div>
+          <div className={`rc-cpp ${tone}`}>
+            <p className="big tnum">{r.centsPerPoint != null ? `${r.centsPerPoint}¢` : "—"}</p>
+            <p className="lbl">per mile</p>
+          </div>
+        </div>
+
+        <div className="rc-mid">
+          <div className="rc-metric">
+            <p className="m-lab">Cash</p>
+            <p className="m-val tnum">${fmt(r.cashPrice)}</p>
+          </div>
+          <div className="rc-metric">
+            <p className="m-lab">Est. miles</p>
+            <p className="m-val tnum">{fmt(r.estPoints)}</p>
+          </div>
+          <div className="rc-metric">
+            <p className="m-lab">Points worth</p>
+            <p className="m-val green tnum">
+              {r.pointsCostUSD != null ? `$${fmt(r.pointsCostUSD)}` : "—"}
+            </p>
+          </div>
+        </div>
+
+        <div className="rc-badges">
+          <span className={`rc-badge ${r.awardType === "own" ? "chart" : "heuristic"}`}>
+            {awardTypeLabel(r.awardType)}
+          </span>
+          <span className="rc-badge">{r.estBasis === "chart" ? "chart estimate" : "heuristic estimate"}</span>
+          <span className={`rc-badge ${r.fundable ? "chart" : "no"}`}>
+            {r.fundable ? "fundable" : "not enough points"}
+          </span>
+        </div>
+      </button>
+
+      {r.alternatives && r.alternatives.length > 0 && (
+        <details className="rc-alts">
+          <summary>
+            +{r.alternatives.length} other program{r.alternatives.length > 1 ? "s" : ""} for this flight
+          </summary>
+          {r.alternatives.map((alt, j) => (
+            <button key={j} className="rc-alt" onClick={() => onSelect(alt)}>
+              <span className="alt-prog">
+                {alt.program}
+                <span className={`alt-tag ${alt.awardType === "own" ? "own" : "partner"}`}>
+                  {alt.awardType === "own" ? "own" : "partner"}
+                </span>
+              </span>
+              <span className="alt-nums tnum">
+                ~{fmt(alt.estPoints)} mi · {alt.pointsCostUSD != null ? `$${fmt(alt.pointsCostUSD)}` : "—"} ·{" "}
+                {alt.centsPerPoint != null ? `${alt.centsPerPoint}¢` : "—"}
+                {!alt.fundable && <span className="alt-no"> · short</span>}
+              </span>
+            </button>
+          ))}
+        </details>
+      )}
+    </div>
+  );
+}
+
 // ── Blueprint output panel ──────────────────────────────────────────────────
+// ── Google Flights deep-link ────────────────────────────────────────────────
+function GoogleFlightsLink({ origin, destination, date }) {
+  if (!origin || !destination) return null;
+  const q = `Flights from ${origin} to ${destination}${date ? ` on ${date}` : ""}`;
+  const href = `https://www.google.com/travel/flights?q=${encodeURIComponent(q)}`;
+  return (
+    <a href={href} target="_blank" rel="noopener noreferrer" className="gf-link">
+      <ExternalLink size={14} />
+      Check live prices on Google Flights ↗
+    </a>
+  );
+}
+
+// ── Award quality panel ──────────────────────────────────────────────────────
+const AQ_BAND_LABELS = {
+  good: "✓ Good deal",
+  typical: "~ Typical",
+  high: "↑ High",
+  dynamic: "Dynamic pricing",
+  "rt-only": "RT required",
+  "no-baseline": "No baseline",
+};
+
+function AwardQuality({ aq, program, origin, destination, cabin }) {
+  if (!aq || aq.band === "no-baseline") return null;
+  const band = aq.band;
+  const label = AQ_BAND_LABELS[band] || band;
+  return (
+    <div className="aq">
+      <div className="aq-head">
+        <span className="aq-title">
+          <Gauge size={13} /> Miles benchmark
+        </span>
+        <span className={`aq-badge ${band}`}>{label}</span>
+      </div>
+
+      {band === "dynamic" && (
+        <p className="aq-row">
+          <b>{program}</b> prices awards dynamically — there's no published saver level to compare
+          against. Award prices vary by date, demand, and availability.
+        </p>
+      )}
+
+      {band === "rt-only" && aq.baselineMiles && (
+        <p className="aq-row">
+          <b>{program}</b> partner awards require <b>round-trip</b> bookings. Published{" "}
+          {cabin} round-trip: <b>~{fmt(aq.baselineMiles)} miles</b> total.
+        </p>
+      )}
+
+      {(band === "good" || band === "typical" || band === "high") && aq.baselineMiles && (
+        <>
+          <p className="aq-row">
+            Typical published saver ({cabin}, {origin}→{destination}) via{" "}
+            <b>{program}</b>: ~<b>{fmt(aq.baselineMiles)} miles</b>.{" "}
+            {aq.ratio != null && (
+              <span>
+                You&apos;re quoted{" "}
+                {band === "good" ? "≈ chart level" : band === "typical" ? `~${Math.round((aq.ratio - 1) * 100)}% above the saver baseline` : `~${Math.round((aq.ratio - 1) * 100)}% above the saver baseline — high for this route`}.
+              </span>
+            )}
+          </p>
+        </>
+      )}
+
+      {aq.cheaperProgram && (
+        <p className="aq-alt">
+          Lower-cost option: <b>{aq.cheaperProgram.program}</b> typically prices this route at{" "}
+          ~<b>{fmt(aq.cheaperProgram.baseline)} miles</b>
+          {aq.cheaperProgram.rtOnly ? " (RT total)" : ""}{" "}
+          [{aq.cheaperProgram.basis}].
+        </p>
+      )}
+
+      {aq.source && (
+        <p className="aq-source">Source: {aq.source}</p>
+      )}
+    </div>
+  );
+}
+
+// ── Cash fare quality panel ──────────────────────────────────────────────────
+const FARE_BAND_LABELS = { good: "Good fare", typical: "Typical fare", high: "Expensive" };
+const FARE_BAND_STYLES = {
+  good:    "pos",
+  typical: "info",
+  high:    "warn",
+};
+
+function FareQuality({ fq, cashPrice }) {
+  if (!fq || !cashPrice) return null;
+  const s = FARE_BAND_STYLES[fq.band] || "info";
+  const label = FARE_BAND_LABELS[fq.band] || fq.band;
+  return (
+    <div className="aq" style={{ marginBottom: 12 }}>
+      <div className="aq-head">
+        <span className="aq-title" style={{ color: "var(--muted)" }}>Cash price reference</span>
+        <span className={`aq-badge ${fq.band}`}>{label}</span>
+      </div>
+      <p className="aq-row">
+        ${fmt(cashPrice)} is{" "}
+        {fq.band === "good" ? "below the typical range — a solid cash fare" :
+         fq.band === "typical" ? "within the typical range for this route" :
+         "above the typical range — using points may offer better value"}.{" "}
+        <span style={{ color: "var(--faint)" }}>
+          (Reference: good ≤ ${fmt(fq.goodThresh)} · typical ≤ ${fmt(fq.typicalThresh)})
+        </span>
+      </p>
+      <p className="aq-source">Rough regional estimate — verify on Google Flights.</p>
+    </div>
+  );
+}
+
 function Blueprint({ loading, error, result }) {
   if (loading) {
     return (
@@ -478,6 +1034,23 @@ function Blueprint({ loading, error, result }) {
   return (
     <div className="panel">
       <div className="fade">
+        {/* Google Flights step-2 link */}
+        {(result.cashPrice || result.pointsRequired) && (
+          <GoogleFlightsLink origin={result.origin} destination={result.destination} />
+        )}
+
+        {/* Award quality judgment (miles baseline) */}
+        <AwardQuality
+          aq={result.awardQuality}
+          program={result.program}
+          origin={result.origin}
+          destination={result.destination}
+          cabin={result.cabin}
+        />
+
+        {/* Cash fare quality */}
+        <FareQuality fq={result.fareQuality} cashPrice={result.cashPrice} />
+
         <div className="result-head">
           <span className="pill pos">
             <CheckCircle2 size={13} /> Fundable

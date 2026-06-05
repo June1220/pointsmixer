@@ -10,6 +10,34 @@ it — without stranding points or wasting your most valuable flexible currencie
 - **No external API, no API key, no per-call cost.** The allocation runs as deterministic
   JavaScript against a local transfer-partner database.
 
+## Two ways in
+- **Search flights** (destination-first): enter origin → destination + date + cabin. The app
+  pulls real cash fares (Duffel), maps each operating carrier to the loyalty programs that
+  could book it (its own + same-alliance), **estimates** the miles each would charge, runs the
+  allocation engine per option, and **ranks** them by points-vs-cash value.
+- **I already know my flight** (bring-your-own-flight): the original flow — enter program,
+  points cost, cash price, and balances → exact transfer blueprint.
+
+> ⚠️ **Award mile costs are ESTIMATES.** Airlines don't publish award prices via any open API,
+> and most price dynamically. The estimator (`app/lib/awardEstimator.js` + data in
+> `app/data/awardCharts.js`) gives a *ballpark from published charts/heuristics* so options can
+> be ranked — it is NOT live award availability. Always confirm real space and price on the
+> airline/bank site before transferring. A paid award API (e.g. seats.aero) can later replace
+> `estimateAwardCost()` without touching the rest of the app.
+
+### Flight data (Duffel) — optional
+Cash fares + operating carriers come from the **Duffel API**. The provider is isolated in
+`app/lib/duffel.js` (the orchestrator imports `searchFlights` from there), so swapping vendors
+is a one-file change. Set the token as an env var (never commit it) — copy
+`.env.local.example` → `.env.local`, and in Vercel set it under Project → Settings →
+Environment Variables:
+```
+DUFFEL_ACCESS_TOKEN=duffel_live_...   # test tokens start with duffel_test_
+```
+**Without a token, `/api/search` returns a "connect the API" state** — it never fabricates
+flights. ⚠️ Duffel **test** tokens mostly return the fictional "Duffel Airways" (maps to no
+loyalty program → "no fundable options"); use a **live** token to see real carriers.
+
 ## How it works
 The rules (which bank transfers to which airline, the ratios, the priority order) are pure
 logic — so there's no need for an LLM at runtime. Instead:

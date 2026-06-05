@@ -2,6 +2,7 @@ import {
   programs,
   airlineAliases,
   alliances,
+  allAirlines,
   pointValues,
   defaultPointValue,
   transferIncrements,
@@ -10,6 +11,9 @@ import {
   valuationsAsOf,
   lastUpdated,
 } from "../data/transferPartners";
+import { judgeAward } from "./awardEstimator";
+import { judgeFare } from "../data/fareBands";
+import { regionForAirport } from "../data/awardCharts";
 
 // Resolve free-text airline input to a canonical key. Returns null if unknown.
 export function resolveAirline(input) {
@@ -56,7 +60,7 @@ const usd = (n) => Math.round(n * 100) / 100;
  *
  * input: { program, pointsRequired, balances, directBalances, cashPrice }
  */
-export function computeBlueprint({ program, pointsRequired, balances, directBalances, cashPrice }) {
+export function computeBlueprint({ program, pointsRequired, balances, directBalances, cashPrice, origin, destination, cabin }) {
   const needed = Number(pointsRequired) || 0;
   const cash = Math.max(0, Number(cashPrice) || 0);
   const airline = resolveAirline(program);
@@ -241,6 +245,27 @@ export function computeBlueprint({ program, pointsRequired, balances, directBala
   }
   warns.push(...notes);
 
+  // Cash fare judgment: is the quoted cash price reasonable for this region-pair?
+  const fareQuality =
+    origin && destination && cash > 0
+      ? judgeFare(cash, regionForAirport(origin), regionForAirport(destination), cabin)
+      : null;
+
+  // Award-quality judgment: compare the quoted pointsRequired against the
+  // chart baseline for this program/route/cabin (if provided).
+  const awardQuality =
+    origin && destination && airline
+      ? judgeAward({
+          program: airline,
+          origin,
+          destination,
+          cabin: cabin || "economy",
+          quotedMiles: needed,
+          cashPrice: cash,
+          allPrograms: allAirlines,
+        })
+      : null;
+
   return {
     isPossible: true,
     shortfall: 0,
@@ -251,12 +276,17 @@ export function computeBlueprint({ program, pointsRequired, balances, directBala
     directApplied,
     valueSummary,
     redemption,
+    awardQuality,
+    fareQuality,
     rationale,
     warning: warns.length ? warns.join(" ") : null,
     program,
     pointsRequired: needed,
     cashPrice: cash || null,
     airline,
+    origin: origin || null,
+    destination: destination || null,
+    cabin: cabin || null,
     dataAsOf: lastUpdated,
     valuationsAsOf,
   };

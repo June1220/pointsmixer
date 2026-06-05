@@ -66,6 +66,37 @@ export const transferIncrements = {
 export const exciseFeePerPoint = 0.0006;
 export const exciseFeeCap = 99;
 
+// ─────────────────────────────────────────────────────────────────────────────
+// AWARD-COST HEURISTIC PEGS (cents per airline mile) — used by the flight-search
+// estimator ONLY, to ballpark how many miles a flight costs when a program has
+// no published award chart (dynamic pricing). estPoints ≈ cashPrice / peg¢.
+// A higher peg = the program tends to price awards richly (fewer miles for the
+// same cash fare). These are rough averages and clearly labeled as ESTIMATES in
+// the UI. Programs with real charts (Aeroplan, ANA, …) bypass this — see
+// app/data/awardCharts.js (chartBasedPrograms).
+// ─────────────────────────────────────────────────────────────────────────────
+export const awardPegCentsAsOf = "2026-06-02";
+export const awardPegCents = {
+  United: 1.4,
+  Delta: 1.2, // notoriously dynamic / low value
+  "Flying Blue": 1.3,
+  JetBlue: 1.3,
+  Southwest: 1.35,
+  Emirates: 1.2,
+  Etihad: 1.3,
+  Qatar: 1.4,
+  "Virgin Atlantic": 1.5,
+  Aeromexico: 1.1,
+  Finnair: 1.3,
+  Hawaiian: 1.2,
+  Spirit: 1.1,
+  "Thai Airways": 1.4,
+  Iberia: 1.4,
+  "Aer Lingus": 1.4,
+};
+// Fallback peg if a dynamic program has no entry above.
+export const defaultAwardPegCents = 1.3;
+
 // Redemption-quality thresholds, in cents per airline mile. Determines the
 // verdict shown when a cash price is entered ("excellent / solid / fair / weak").
 // These are judgment calls about what counts as a good award — edit on request.
