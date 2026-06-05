@@ -11,6 +11,7 @@ import {
 } from "../data/awardCharts";
 import { greatCircleMiles } from "../data/airportCoords";
 import { awardPegCents, defaultAwardPegCents } from "../data/transferPartners";
+import { getDynamicRange, classifyVsRange } from "../data/dynamicRanges";
 
 // Normalize cabin string to: economy | premium | business | first
 export function normalizeCabin(cabin) {
@@ -142,8 +143,13 @@ export function judgeAward({ program, origin, destination, cabin, quotedMiles, c
   const quoted = Number(quotedMiles) || 0;
   const chartClass = programChartClass(program);
 
-  // For dynamic programs: no saver verdict, but suggest a fixed-chart alternative.
+  // For dynamic programs: no fixed saver verdict, but surface historical range
+  // (if available in dynamicRanges.js) and suggest a fixed-chart alternative.
   if (chartClass === null) {
+    const fromRegion = regionForAirport(origin);
+    const toRegion   = regionForAirport(destination);
+    const dynamicRange = getDynamicRange(program, fromRegion, toRegion, cab);
+    const rangeClass = dynamicRange ? classifyVsRange(quotedMiles, dynamicRange) : null;
     const alt = bestFixedAlt(program, origin, destination, cab, cashPrice, allPrograms);
     return {
       band: "dynamic",
@@ -152,8 +158,12 @@ export function judgeAward({ program, origin, destination, cabin, quotedMiles, c
       basis: "dynamic",
       source: null,
       rtOnly: false,
+      dynamicRange,   // { low, typical, high, note, source } or null
+      rangeClass,     // "low" | "typical" | "high" | null (where quoted falls in history)
       cheaperProgram: alt,
-      note: `${program} prices awards dynamically — there's no published saver level to compare against. Award prices vary by date, demand, and availability.`,
+      note: dynamicRange
+        ? `${program} prices awards dynamically — no fixed saver chart. Historical observed range for this route: ${dynamicRange.low.toLocaleString()}–${dynamicRange.high.toLocaleString()} miles.`
+        : `${program} prices awards dynamically — there's no published saver level to compare against. Award prices vary by date, demand, and availability.`,
     };
   }
 

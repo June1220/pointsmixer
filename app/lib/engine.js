@@ -12,7 +12,7 @@ import {
   lastUpdated,
 } from "../data/transferPartners";
 import { judgeAward } from "./awardEstimator";
-import { judgeFare } from "../data/fareBands";
+import { getCashBallpark } from "../data/fareBands";
 import { regionForAirport } from "../data/awardCharts";
 
 // Resolve free-text airline input to a canonical key. Returns null if unknown.
@@ -245,10 +245,11 @@ export function computeBlueprint({ program, pointsRequired, balances, directBala
   }
   warns.push(...notes);
 
-  // Cash fare judgment: is the quoted cash price reasonable for this region-pair?
+  // Cash fare ballpark: rough historical range for context only.
+  // Cash fares are dynamic — no verdict, just a soft reference note.
   const fareQuality =
-    origin && destination && cash > 0
-      ? judgeFare(cash, regionForAirport(origin), regionForAirport(destination), cabin)
+    origin && destination
+      ? getCashBallpark(regionForAirport(origin), regionForAirport(destination), cabin)
       : null;
 
   // Award-quality judgment: compare the quoted pointsRequired against the

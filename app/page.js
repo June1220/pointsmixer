@@ -816,29 +816,37 @@ function ResultCard({ r, onSelect }) {
 
 // ── Blueprint output panel ──────────────────────────────────────────────────
 // ── Google Flights deep-link ────────────────────────────────────────────────
-function GoogleFlightsLink({ origin, destination, date }) {
+// ── Google Flights link — Step 1 ─────────────────────────────────────────────
+function GoogleFlightsLink({ origin, destination }) {
   if (!origin || !destination) return null;
-  const q = `Flights from ${origin} to ${destination}${date ? ` on ${date}` : ""}`;
+  const q = `Flights from ${origin} to ${destination}`;
   const href = `https://www.google.com/travel/flights?q=${encodeURIComponent(q)}`;
   return (
     <a href={href} target="_blank" rel="noopener noreferrer" className="gf-link">
       <ExternalLink size={14} />
-      Check live prices on Google Flights ↗
+      ① Check live prices on Google Flights ↗
     </a>
   );
 }
 
 // ── Award quality panel ──────────────────────────────────────────────────────
 const AQ_BAND_LABELS = {
-  good: "✓ Good deal",
-  typical: "~ Typical",
-  high: "↑ High",
-  dynamic: "Dynamic pricing",
-  "rt-only": "RT required",
-  "no-baseline": "No baseline",
+  good:           "✓ Good deal",
+  typical:        "~ Typical",
+  high:           "↑ High",
+  dynamic:        "Dynamic pricing",
+  "rt-only":      "RT required",
+  "no-baseline":  "No baseline",
 };
 
-function AwardQuality({ aq, program, origin, destination, cabin }) {
+// Where quoted miles fall within the dynamic historical range.
+const RANGE_CLASS_LABELS = {
+  low:     { label: "⬇ Below typical range", cls: "pos",  note: "Unusually low — confirm availability before transferring." },
+  typical: { label: "✓ Within historical range", cls: "info", note: null },
+  high:    { label: "⬆ Above typical range", cls: "warn", note: "This program is pricing high for this route right now." },
+};
+
+function AwardQuality({ aq, program, origin, destination, cabin, quotedMiles }) {
   if (!aq || aq.band === "no-baseline") return null;
   const band = aq.band;
   const label = AQ_BAND_LABELS[band] || band;
@@ -846,18 +854,45 @@ function AwardQuality({ aq, program, origin, destination, cabin }) {
     <div className="aq">
       <div className="aq-head">
         <span className="aq-title">
-          <Gauge size={13} /> Miles benchmark
+          <Gauge size={13} /> ② Miles benchmark
         </span>
         <span className={`aq-badge ${band}`}>{label}</span>
       </div>
 
-      {band === "dynamic" && (
+      {/* Dynamic program: show historical range + where quote falls */}
+      {band === "dynamic" && aq.dynamicRange ? (
+        <>
+          <p className="aq-row">
+            <b>{program}</b> uses dynamic pricing — no fixed saver chart.{" "}
+            Historical observed range ({cabin}, {origin}→{destination}):{" "}
+            <b>~{fmt(aq.dynamicRange.low)}–{fmt(aq.dynamicRange.high)} miles</b>.
+            {aq.rangeClass && (() => {
+              const rc = RANGE_CLASS_LABELS[aq.rangeClass];
+              return rc ? (
+                <> You&apos;re quoted <b>{fmt(quotedMiles)}</b> miles —{" "}
+                  <b style={{ color: `var(--${rc.cls})` }}>{rc.label}</b>
+                  {rc.note ? ` ${rc.note}` : "."}</>
+              ) : null;
+            })()}
+          </p>
+          {aq.dynamicRange.note && (
+            <p className="aq-row" style={{ color: "var(--muted)", fontSize: "12.5px" }}>
+              {aq.dynamicRange.note}
+            </p>
+          )}
+          <p className="aq-source" style={{ marginTop: 6 }}>
+            Historical data — not a saver guarantee. Dynamic prices vary by date and demand.{" "}
+            {aq.dynamicRange.source && <>Source: {aq.dynamicRange.source}</>}
+          </p>
+        </>
+      ) : band === "dynamic" ? (
         <p className="aq-row">
-          <b>{program}</b> prices awards dynamically — there's no published saver level to compare
-          against. Award prices vary by date, demand, and availability.
+          <b>{program}</b> prices awards dynamically — no published saver chart and no
+          historical range data available for this route. Award prices vary significantly.
         </p>
-      )}
+      ) : null}
 
+      {/* RT-only (ANA) */}
       {band === "rt-only" && aq.baselineMiles && (
         <p className="aq-row">
           <b>{program}</b> partner awards require <b>round-trip</b> bookings. Published{" "}
@@ -865,21 +900,25 @@ function AwardQuality({ aq, program, origin, destination, cabin }) {
         </p>
       )}
 
+      {/* Fixed-chart programs: good / typical / high */}
       {(band === "good" || band === "typical" || band === "high") && aq.baselineMiles && (
-        <>
-          <p className="aq-row">
-            Typical published saver ({cabin}, {origin}→{destination}) via{" "}
-            <b>{program}</b>: ~<b>{fmt(aq.baselineMiles)} miles</b>.{" "}
-            {aq.ratio != null && (
-              <span>
-                You&apos;re quoted{" "}
-                {band === "good" ? "≈ chart level" : band === "typical" ? `~${Math.round((aq.ratio - 1) * 100)}% above the saver baseline` : `~${Math.round((aq.ratio - 1) * 100)}% above the saver baseline — high for this route`}.
-              </span>
-            )}
-          </p>
-        </>
+        <p className="aq-row">
+          Published saver level ({cabin}, {origin}→{destination}) via{" "}
+          <b>{program}</b>: ~<b>{fmt(aq.baselineMiles)} miles</b>.{" "}
+          {aq.ratio != null && (
+            <span>
+              You&apos;re quoted{" "}
+              {band === "good"
+                ? "≈ the published saver level — a good value."
+                : band === "typical"
+                ? `~${Math.round((aq.ratio - 1) * 100)}% above the saver baseline.`
+                : `~${Math.round((aq.ratio - 1) * 100)}% above the saver baseline — high for this route.`}
+            </span>
+          )}
+        </p>
       )}
 
+      {/* Cheaper-program hint */}
       {aq.cheaperProgram && (
         <p className="aq-alt">
           Lower-cost option: <b>{aq.cheaperProgram.program}</b> typically prices this route at{" "}
@@ -889,42 +928,22 @@ function AwardQuality({ aq, program, origin, destination, cabin }) {
         </p>
       )}
 
-      {aq.source && (
+      {aq.source && band !== "dynamic" && (
         <p className="aq-source">Source: {aq.source}</p>
       )}
     </div>
   );
 }
 
-// ── Cash fare quality panel ──────────────────────────────────────────────────
-const FARE_BAND_LABELS = { good: "Good fare", typical: "Typical fare", high: "Expensive" };
-const FARE_BAND_STYLES = {
-  good:    "pos",
-  typical: "info",
-  high:    "warn",
-};
-
-function FareQuality({ fq, cashPrice }) {
-  if (!fq || !cashPrice) return null;
-  const s = FARE_BAND_STYLES[fq.band] || "info";
-  const label = FARE_BAND_LABELS[fq.band] || fq.band;
+// ── Cash fare context note (no verdict — fares are dynamic) ──────────────────
+function FareQuality({ fq }) {
+  // fq = { ballpark, low, high } or null
+  if (!fq || !fq.ballpark) return null;
   return (
-    <div className="aq" style={{ marginBottom: 12 }}>
-      <div className="aq-head">
-        <span className="aq-title" style={{ color: "var(--muted)" }}>Cash price reference</span>
-        <span className={`aq-badge ${fq.band}`}>{label}</span>
-      </div>
-      <p className="aq-row">
-        ${fmt(cashPrice)} is{" "}
-        {fq.band === "good" ? "below the typical range — a solid cash fare" :
-         fq.band === "typical" ? "within the typical range for this route" :
-         "above the typical range — using points may offer better value"}.{" "}
-        <span style={{ color: "var(--faint)" }}>
-          (Reference: good ≤ ${fmt(fq.goodThresh)} · typical ≤ ${fmt(fq.typicalThresh)})
-        </span>
-      </p>
-      <p className="aq-source">Rough regional estimate — verify on Google Flights.</p>
-    </div>
+    <p className="aq-source" style={{ marginBottom: 14, marginTop: -4 }}>
+      Cash context: {fq.ballpark} for this route/cabin.{" "}
+      Use ① Google Flights ↗ for today&apos;s actual price.
+    </p>
   );
 }
 
@@ -1039,17 +1058,18 @@ function Blueprint({ loading, error, result }) {
           <GoogleFlightsLink origin={result.origin} destination={result.destination} />
         )}
 
-        {/* Award quality judgment (miles baseline) */}
+        {/* Award quality judgment (miles baseline + dynamic range) */}
         <AwardQuality
           aq={result.awardQuality}
           program={result.program}
           origin={result.origin}
           destination={result.destination}
           cabin={result.cabin}
+          quotedMiles={result.pointsRequired}
         />
 
-        {/* Cash fare quality */}
-        <FareQuality fq={result.fareQuality} cashPrice={result.cashPrice} />
+        {/* Cash fare ballpark context note */}
+        <FareQuality fq={result.fareQuality} />
 
         <div className="result-head">
           <span className="pill pos">
