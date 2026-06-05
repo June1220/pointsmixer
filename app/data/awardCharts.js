@@ -136,6 +136,8 @@ export const programMeta = {
   "Qatar":         { chartClass: null },  // dynamic
   "Etihad":        { chartClass: null },  // dynamic
   "Finnair":       { chartClass: null },  // dynamic; Avios-like but rates vary
+  "Virgin Atlantic":{ chartClass: null }, // fully dynamic since 2021
+  "Aeromexico":    { chartClass: null },  // dynamic
   "Hawaiian":      { chartClass: null },
   "JetBlue":       { chartClass: null },
   "Southwest":     { chartClass: null },
@@ -208,7 +210,7 @@ export const aeroplanChart = {
 // Source: awardtravelfinder.com/award-charts/alaska-airlines ; verified 2026-06-04
 // Alaska uses a per-partner table rather than strict zones; region approximation.
 export const alaskaChart = {
-  [pairKey("North America", "North America")]:     C(7500, 15000, null),
+  [pairKey("North America", "North America")]:     C( 7500, 15000, null),
   [pairKey("North America", "Central America/Caribbean")]: C(12500, 25000, null),
   [pairKey("North America", "South America")]:     C(20000, 40000, null),
   [pairKey("North America", "Europe")]:            C(25000, 56250, 80000),
@@ -216,12 +218,17 @@ export const alaskaChart = {
   [pairKey("North America", "Southeast Asia")]:    C(27500, 55000, 77500),
   [pairKey("North America", "South Asia")]:        C(27500, 55000, null),
   [pairKey("North America", "Middle East")]:       C(30000, 60000, null),
+  [pairKey("North America", "Africa")]:            C(35000, 70000, null),
   [pairKey("North America", "Oceania")]:           C(32500, 55000, null),
   [pairKey("Europe", "Europe")]:                   C(10000, 20000, null),
+  [pairKey("Europe", "Middle East")]:              C(22500, 45000, null),
+  [pairKey("Europe", "South Asia")]:               C(25000, 50000, null),
   [pairKey("Europe", "North Asia")]:               C(30000, 60000, null),
   [pairKey("Europe", "Southeast Asia")]:           C(30000, 60000, null),
+  [pairKey("Europe", "Oceania")]:                  C(40000, 75000, null),
   [pairKey("North Asia", "Southeast Asia")]:       C(17500, 35000, null),
   [pairKey("North Asia", "Oceania")]:              C(30000, 55000, null),
+  [pairKey("Southeast Asia", "Oceania")]:          C(25000, 50000, null),
 };
 
 // ── Avianca LifeMiles — region-based chart ───────────────────────────────────
@@ -254,32 +261,50 @@ export const singaporeChart = {
   [pairKey("North America", "North Asia")]:        C(35000, 67500, 95000),
   [pairKey("North America", "Southeast Asia")]:    C(35000, 67500, 95000),
   [pairKey("North America", "South Asia")]:        C(35000, 67500, null),
+  [pairKey("North America", "Middle East")]:       C(37500, 72500, null),
+  [pairKey("North America", "Africa")]:            C(40000, 75000, null),
   [pairKey("North America", "Oceania")]:           C(40000, 75000, null),
+  [pairKey("North America", "South America")]:     C(40000, 75000, null),
   [pairKey("Europe", "Europe")]:                   C(10000, 22500, 35000),
   [pairKey("Europe", "North Asia")]:               C(35000, 67500, 95000),
   [pairKey("Europe", "Southeast Asia")]:           C(30000, 57500, 80000),
   [pairKey("Europe", "South Asia")]:               C(25000, 47500, null),
+  [pairKey("Europe", "Middle East")]:              C(22500, 42500, null),
+  [pairKey("Europe", "Africa")]:                   C(27500, 52500, null),
+  [pairKey("Europe", "Oceania")]:                  C(42500, 80000, null),
+  [pairKey("Middle East", "Southeast Asia")]:      C(17500, 35000, null),
+  [pairKey("Middle East", "North Asia")]:          C(25000, 50000, null),
   [pairKey("North Asia", "Southeast Asia")]:       C(17500, 35000, 50000),
   [pairKey("North Asia", "Oceania")]:              C(35000, 65000, null),
   [pairKey("Southeast Asia", "Southeast Asia")]:   C(10000, 22500, null),
+  [pairKey("Southeast Asia", "South Asia")]:       C(12500, 25000, null),
   [pairKey("Southeast Asia", "Oceania")]:          C(30000, 57500, null),
+  [pairKey("South Asia", "South Asia")]:           C( 7500, 17500, null),
 };
 
 // ── Japan Airlines (JAL) Mileage Bank — zone chart ───────────────────────────
 // Source: jal.co.jp award redemption chart ; approximated from awardtravelfinder ;
 // verified 2026-06-04.
 export const jalChart = {
-  [pairKey("North America", "North America")]:     C(7500,  15000, null),
+  [pairKey("North America", "North America")]:     C( 7500, 15000, null),
+  [pairKey("North America", "Central America/Caribbean")]: C(15000, 30000, null),
+  [pairKey("North America", "South America")]:     C(30000, 60000, null),
   [pairKey("North America", "Europe")]:            C(30000, 57500, 80000),
   [pairKey("North America", "North Asia")]:        C(25000, 45000, 67500),
   [pairKey("North America", "Southeast Asia")]:    C(35000, 67500, 95000),
   [pairKey("North America", "South Asia")]:        C(35000, 67500, null),
+  [pairKey("North America", "Middle East")]:       C(35000, 67500, null),
   [pairKey("North America", "Oceania")]:           C(40000, 75000, null),
+  [pairKey("Europe", "Europe")]:                   C( 7500, 15000, null),
   [pairKey("Europe", "North Asia")]:               C(27500, 50000, 70000),
   [pairKey("Europe", "Southeast Asia")]:           C(30000, 57500, 80000),
-  [pairKey("North Asia", "North Asia")]:           C(7500,  15000, null),
+  [pairKey("Europe", "Middle East")]:              C(20000, 40000, null),
+  [pairKey("Europe", "Oceania")]:                  C(40000, 75000, null),
+  [pairKey("North Asia", "North Asia")]:           C( 7500, 15000, null),
   [pairKey("North Asia", "Southeast Asia")]:       C(15000, 30000, null),
   [pairKey("North Asia", "Oceania")]:              C(30000, 57500, null),
+  [pairKey("Southeast Asia", "Oceania")]:          C(25000, 50000, null),
+  [pairKey("Southeast Asia", "Southeast Asia")]:   C( 7500, 15000, null),
 };
 
 // ── Qantas Frequent Flyer — zone chart ───────────────────────────────────────
@@ -287,14 +312,24 @@ export const jalChart = {
 // verified 2026-06-04. Oneworld partner redemptions.
 export const qantasChart = {
   [pairKey("North America", "North America")]:     C(10000, 22500, null),
+  [pairKey("North America", "Central America/Caribbean")]: C(15000, 30000, null),
+  [pairKey("North America", "South America")]:     C(30000, 55000, null),
   [pairKey("North America", "Europe")]:            C(35000, 70000, 110000),
   [pairKey("North America", "North Asia")]:        C(30000, 55000, null),
   [pairKey("North America", "Southeast Asia")]:    C(35000, 70000, null),
+  [pairKey("North America", "South Asia")]:        C(35000, 70000, null),
+  [pairKey("North America", "Middle East")]:       C(37500, 75000, null),
   [pairKey("North America", "Oceania")]:           C(35000, 55000, 80000),
+  [pairKey("Europe", "Europe")]:                   C(10000, 20000, null),
+  [pairKey("Europe", "Middle East")]:              C(22500, 45000, null),
+  [pairKey("Europe", "South Asia")]:               C(27500, 55000, null),
   [pairKey("Europe", "North Asia")]:               C(30000, 55000, null),
+  [pairKey("Europe", "Southeast Asia")]:           C(30000, 60000, null),
   [pairKey("Europe", "Oceania")]:                  C(40000, 82500, null),
+  [pairKey("Middle East", "Oceania")]:             C(30000, 60000, null),
   [pairKey("North Asia", "Oceania")]:              C(25000, 50000, null),
   [pairKey("Southeast Asia", "Oceania")]:          C(20000, 42500, null),
+  [pairKey("Southeast Asia", "Southeast Asia")]:   C(10000, 22500, null),
 };
 
 // ── TAP Air Portugal Miles&Go — Star Alliance zone chart ─────────────────────

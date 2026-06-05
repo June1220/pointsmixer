@@ -862,6 +862,133 @@ export const dynamicRanges = {
     },
   },
 
+  // ── Virgin Atlantic Flying Club ───────────────────────────────────────────
+  // Fully dynamic since 2021. "Reward seats" can be exceptional value; standard
+  // seats are much worse. Partners: Chase UR, Amex MR, Citi TYP, Bilt, Capital One.
+  // Upper Class = lie-flat business. No true First on most routes.
+  // Source: thepointsguy.com/loyalty-programs/virgin-atlantic-flying-club — Jun 2026
+  "Virgin Atlantic": {
+    [pk("North America", "Europe")]: {
+      economy:  { low:  6000, typical: 25000, high:  50000,
+                  note: "Reward seats as low as 6,000 off-peak (rare). Standard economy 20k–35k. Upper Class is the sweet spot for this program.",
+                  source: "thepointsguy.com Jun 2026" },
+      business: { low: 25000, typical: 50000, high:  90000,
+                  note: "Upper Class OW. Off-peak 'Reward' fares 25k–35k are exceptional value. Standard seats cost 60k+. Fuel surcharges on partner metal.",
+                  source: "thepointsguy.com Jun 2026" },
+    },
+    [pk("North America", "North Asia")]: {
+      economy:  { low: 30000, typical: 50000, high: 100000,
+                  source: "thepointsguy.com Jun 2026" },
+      business: { low: 50000, typical: 80000, high: 150000,
+                  source: "thepointsguy.com Jun 2026" },
+    },
+    [pk("North America", "South Asia")]: {
+      economy:  { low: 30000, typical: 55000, high: 110000,
+                  source: "thepointsguy.com Jun 2026" },
+      business: { low: 55000, typical: 85000, high: 160000,
+                  note: "LHR connection on Virgin or partner metal.",
+                  source: "thepointsguy.com Jun 2026" },
+    },
+    [pk("North America", "Southeast Asia")]: {
+      economy:  { low: 35000, typical: 55000, high: 110000,
+                  source: "thepointsguy.com Jun 2026" },
+      business: { low: 55000, typical: 90000, high: 160000,
+                  source: "thepointsguy.com Jun 2026" },
+    },
+    [pk("North America", "Africa")]: {
+      economy:  { low: 35000, typical: 60000, high: 120000,
+                  source: "thepointsguy.com Jun 2026" },
+      business: { low: 60000, typical: 95000, high: 170000,
+                  source: "thepointsguy.com Jun 2026" },
+    },
+    [pk("Europe", "Europe")]: {
+      economy:  { low:  6000, typical: 12000, high:  25000,
+                  note: "Short-haul within Europe on Virgin or partner metal.",
+                  source: "thepointsguy.com Jun 2026" },
+    },
+    [pk("North America", "Central America/Caribbean")]: {
+      economy:  { low:  7500, typical: 18000, high:  35000,
+                  note: "Caribbean routes including Barbados, Antigua, Tobago direct.",
+                  source: "thepointsguy.com Jun 2026" },
+      business: { low: 15000, typical: 35000, high:  65000,
+                  source: "thepointsguy.com Jun 2026" },
+    },
+  },
+
+  // ── Aeromexico Club Premier ────────────────────────────────────────────────
+  // Dynamic; SkyTeam member. Partners: Amex MR 1.6:1, Capital One 1:1.
+  // Strong for US↔Mexico routes and connections. Long-haul goes via MEX hub.
+  // Source: thepointsguy.com/loyalty-programs/aeromexico-club-premier — Jun 2026
+  "Aeromexico": {
+    [pk("North America", "Central America/Caribbean")]: {
+      economy:  { low:  8000, typical: 18000, high:  40000,
+                  note: "US↔Mexico routes are the sweet spot. Short hops like LAX↔MEX can be as low as 8k off-peak.",
+                  source: "thepointsguy.com Jun 2026" },
+      business: { low: 16000, typical: 35000, high:  70000,
+                  note: "Club Premier lie-flat business on select routes.",
+                  source: "thepointsguy.com Jun 2026" },
+    },
+    [pk("North America", "South America")]: {
+      economy:  { low: 20000, typical: 40000, high:  80000,
+                  source: "thepointsguy.com Jun 2026" },
+      business: { low: 40000, typical: 75000, high: 130000,
+                  source: "thepointsguy.com Jun 2026" },
+    },
+    [pk("North America", "Europe")]: {
+      economy:  { low: 30000, typical: 60000, high: 120000,
+                  note: "Routed via MEX. Consider SkyTeam partners (Flying Blue, Delta) for competing options.",
+                  source: "thepointsguy.com Jun 2026" },
+      business: { low: 55000, typical: 100000, high: 180000,
+                  source: "thepointsguy.com Jun 2026" },
+    },
+  },
+
+  // ── Hawaiian Airlines HawaiianMiles ───────────────────────────────────────
+  // Dynamic. Partners: Amex MR 1:1 (with excise fee), Bilt 1:1 (via Atmos Rewards).
+  // Best for mainland US↔Hawaii. Also flies to South Pacific and Japan.
+  // Source: thepointsguy.com/loyalty-programs/hawaiian-airlines-hawaiianmiles — Jun 2026
+  "Hawaiian": {
+    [pk("North America", "North America")]: {
+      economy:  { low:  5000, typical: 15000, high:  30000,
+                  note: "Mainland↔Hawaii. Off-peak (especially midweek) as low as 5k. Peak summer/holiday 25k+.",
+                  source: "thepointsguy.com Jun 2026" },
+      business: { low: 10000, typical: 25000, high:  50000,
+                  note: "First Class on Hawaiian routes. Far better value than economy for extra points spent.",
+                  source: "thepointsguy.com Jun 2026" },
+    },
+    [pk("North America", "North Asia")]: {
+      economy:  { low: 35000, typical: 55000, high: 100000,
+                  note: "Honolulu↔Tokyo/Osaka. Good-value Japan routes if space is available.",
+                  source: "thepointsguy.com Jun 2026" },
+      business: { low: 60000, typical: 90000, high: 150000,
+                  source: "thepointsguy.com Jun 2026" },
+    },
+    [pk("North America", "Oceania")]: {
+      economy:  { low: 25000, typical: 45000, high:  80000,
+                  note: "Honolulu↔Sydney/Auckland routes.",
+                  source: "thepointsguy.com Jun 2026" },
+      business: { low: 50000, typical: 80000, high: 130000,
+                  source: "thepointsguy.com Jun 2026" },
+    },
+  },
+
+  // ── Spirit Free Spirit ────────────────────────────────────────────────────
+  // Fixed-value model (like Southwest but lower CPP ≈ 1.1¢).
+  // Partners: Bilt 1:1.
+  // Ultra-low-cost domestic US and Caribbean only. Points value is modest.
+  // Source: thepointsguy.com/loyalty-programs/spirit-free-spirit — Jun 2026
+  "Spirit": {
+    [pk("North America", "North America")]: {
+      economy:  { low: 2500, typical:  8000, high: 20000,
+                  note: "Points ≈ 1.1¢ each toward Spirit fares. Best value on bare-bones saver fares. Bag fees add cash cost — factor that in before transferring.",
+                  source: "thepointsguy.com Jun 2026" },
+    },
+    [pk("North America", "Central America/Caribbean")]: {
+      economy:  { low: 4000, typical: 11000, high: 25000,
+                  source: "thepointsguy.com Jun 2026" },
+    },
+  },
+
   // ── EVA Air Infinity MileageLands ─────────────────────────────────────────
   // Fully dynamic; Star Alliance.
   // Source: thepointsguy.com/loyalty-programs/eva-air-infinity-mileagelands — Jun 2026
