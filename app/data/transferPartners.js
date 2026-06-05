@@ -106,6 +106,124 @@ export const redemptionTiers = {
   fair: 1.2, // >= this        → fair; below → weak (consider paying cash)
 };
 
+// ─────────────────────────────────────────────────────────────────────────────
+// CARRIER-IMPOSED SURCHARGES (YQ/YR fees)
+//
+// Many airlines impose fuel surcharges / carrier-imposed fees on award tickets
+// that the traveler must pay IN CASH on top of the miles. These can be $0 or
+// $700+ depending on the airline and route, and dramatically affect whether an
+// award is a "great deal" or not.
+//
+// Structure: { [airline]: { default, routes: { [regionPairKey]: amount } } }
+// `default` = typical OW surcharge in USD when no route-specific data applies.
+// `routes`  = overrides for specific region pairs (sorted pair key, " | " joined).
+// Programs with $0 or negligible surcharges are omitted.
+// Surcharges are per person, one-way, and vary by cabin — values here are
+// approximate midpoints for business class (economy is typically 30–60% of these).
+//
+// Source: awardwallet.com, flyertalk.com fuel surcharge threads, bank/airline
+// sites — verified Jun 2026
+// ─────────────────────────────────────────────────────────────────────────────
+export const carrierSurchargesAsOf = "2026-06-05";
+const spk = (a, b) => [a, b].sort().join(" | ");
+export const carrierSurcharges = {
+  "British Airways": {
+    default: 300,
+    routes: {
+      [spk("North America", "Europe")]: 650,
+      [spk("Europe", "Europe")]: 50,
+      [spk("North America", "North Asia")]: 500,
+      [spk("North America", "Southeast Asia")]: 550,
+      [spk("North America", "South Asia")]: 550,
+      [spk("Europe", "North Asia")]: 400,
+      [spk("Europe", "Southeast Asia")]: 450,
+      [spk("Europe", "South Asia")]: 350,
+      [spk("North America", "Oceania")]: 500,
+      [spk("Europe", "Oceania")]: 500,
+    },
+    note: "BA surcharges are the highest in the industry. Consider booking BA metal via Iberia Avios (lower fees) or avoid BA-operated flights.",
+  },
+  "Flying Blue": {
+    default: 200,
+    routes: {
+      [spk("North America", "Europe")]: 275,
+      [spk("Europe", "Europe")]: 30,
+      [spk("Europe", "North Asia")]: 250,
+      [spk("Europe", "Southeast Asia")]: 250,
+      [spk("Europe", "Africa")]: 150,
+    },
+    note: "Air France/KLM surcharges are moderate. Economy surcharges are roughly half these amounts.",
+  },
+  Singapore: {
+    default: 150,
+    routes: {
+      [spk("North America", "Southeast Asia")]: 250,
+      [spk("Europe", "Southeast Asia")]: 200,
+      [spk("Southeast Asia", "Oceania")]: 100,
+      [spk("Southeast Asia", "Southeast Asia")]: 50,
+    },
+    note: "Singapore Airlines surcharges are moderate. Some routes via partner carriers have different fees.",
+  },
+  "Japan Airlines": {
+    default: 150,
+    routes: {
+      [spk("North America", "North Asia")]: 250,
+      [spk("Europe", "North Asia")]: 200,
+      [spk("North Asia", "Southeast Asia")]: 80,
+    },
+  },
+  Finnair: {
+    default: 200,
+    routes: {
+      [spk("North America", "Europe")]: 300,
+      [spk("Europe", "North Asia")]: 250,
+      [spk("Europe", "Southeast Asia")]: 250,
+      [spk("Europe", "Europe")]: 30,
+    },
+    note: "Finnair surcharges are significant on long-haul. Consider booking Finnair metal via other Oneworld programs.",
+  },
+  "Cathay Pacific": {
+    default: 200,
+    routes: {
+      [spk("North America", "North Asia")]: 350,
+      [spk("Europe", "North Asia")]: 300,
+      [spk("North Asia", "Southeast Asia")]: 80,
+      [spk("North Asia", "Oceania")]: 200,
+    },
+    note: "CX surcharges vary significantly. Booking CX via Alaska Miles avoids some fees.",
+  },
+  Qantas: {
+    default: 150,
+    routes: {
+      [spk("North America", "Oceania")]: 250,
+      [spk("Europe", "Oceania")]: 250,
+      [spk("North Asia", "Oceania")]: 200,
+      [spk("Southeast Asia", "Oceania")]: 100,
+    },
+  },
+  "Virgin Atlantic": {
+    default: 100,
+    routes: {
+      [spk("North America", "Europe")]: 50,  // own metal surcharges are low
+    },
+    note: "Virgin Atlantic's own-metal surcharges are low. Delta partner metal via VS has minimal fees.",
+  },
+  "TAP Air Portugal": {
+    default: 150,
+    routes: {
+      [spk("North America", "Europe")]: 200,
+      [spk("Europe", "Europe")]: 30,
+    },
+  },
+  "Korean Air": {
+    default: 100,
+    routes: {
+      [spk("North America", "North Asia")]: 150,
+      [spk("Europe", "North Asia")]: 120,
+    },
+  },
+};
+
 // Verified against bank transfer-partner pages / award-travel trackers on the
 // date above. Sources: awardtravelfinder.com, upgradedpoints.com, bank sites.
 export const programs = {

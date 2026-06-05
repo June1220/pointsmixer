@@ -1142,11 +1142,18 @@ function Blueprint({ loading, error, result }) {
           <div className={`verdict ${VERDICT_CLASS[result.redemption.tone]} block`}>
             <Gauge className="ic" size={17} style={{ marginTop: 3, flex: "none" }} />
             <div>
-              <div style={{ display: "flex", alignItems: "baseline", gap: 8 }}>
+              <div style={{ display: "flex", alignItems: "baseline", gap: 8, flexWrap: "wrap" }}>
                 <span className="cpp tnum">{result.redemption.centsPerPoint}¢</span>
-                <span className="unit">per mile redemption value</span>
+                <span className="unit">per mile{result.redemption.adjCentsPerPoint != null && (
+                  <> · <b className="tnum">{result.redemption.adjCentsPerPoint}¢</b> after surcharges</>
+                )}</span>
               </div>
               <p className="txt">{result.redemption.verdict}</p>
+              {result.redemption.surchargeUSD > 0 && (
+                <p className="txt" style={{ marginTop: 6, fontSize: "12.5px", color: "var(--muted)" }}>
+                  Estimated ~${fmt(result.redemption.surchargeUSD)} in carrier-imposed fees (YQ) paid in cash on top of the miles.
+                </p>
+              )}
             </div>
           </div>
         )}

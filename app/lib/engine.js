@@ -8,12 +8,27 @@ import {
   transferIncrements,
   exciseFeeCap,
   redemptionTiers,
+  carrierSurcharges,
   valuationsAsOf,
   lastUpdated,
 } from "../data/transferPartners";
 import { judgeAward } from "./awardEstimator";
 import { getCashBallpark } from "../data/fareBands";
-import { regionForAirport } from "../data/awardCharts";
+import { regionForAirport, pairKey } from "../data/awardCharts";
+
+// Estimate carrier-imposed surcharge (YQ/YR) in USD for an award booking.
+function getCarrierSurcharge(airline, origin, destination) {
+  const entry = carrierSurcharges[airline];
+  if (!entry) return { amount: 0, note: null };
+  const fromRegion = regionForAirport(origin);
+  const toRegion = regionForAirport(destination);
+  let amount = entry.default || 0;
+  if (fromRegion && toRegion) {
+    const key = pairKey(fromRegion, toRegion);
+    if (entry.routes && entry.routes[key] != null) amount = entry.routes[key];
+  }
+  return { amount, note: entry.note || null };
+}
 
 // Resolve free-text airline input to a canonical key. Returns null if unknown.
 export function resolveAirline(input) {
@@ -78,6 +93,7 @@ export function computeBlueprint({ program, pointsRequired, balances, directBala
     });
   }
 
+  const surcharge = getCarrierSurcharge(airline, origin, destination);
   const partners = partnerBanksFor(airline);
   const validPartners = partners.map((p) => p.bank);
   const allianceMiles = sameAllianceHoldings(airline, directBalances);
@@ -102,7 +118,8 @@ export function computeBlueprint({ program, pointsRequired, balances, directBala
     r.directHeld = directHeld;
     r.directApplied = directApplied;
     r.valueSummary = summarize([], balances, []);
-    r.redemption = redemptionVerdict(cash, needed, 0);
+    r.redemption = redemptionVerdict(cash, needed, 0, surcharge.amount);
+    r.surcharge = surcharge;
     return r;
   }
 
@@ -150,7 +167,8 @@ export function computeBlueprint({ program, pointsRequired, balances, directBala
     r.allianceMiles = allianceMiles;
     r.directHeld = directHeld;
     r.directApplied = directApplied;
-    r.redemption = redemptionVerdict(cash, needed, 0);
+    r.redemption = redemptionVerdict(cash, needed, 0, surcharge.amount);
+    r.surcharge = surcharge;
     return r;
   }
 
@@ -195,7 +213,7 @@ export function computeBlueprint({ program, pointsRequired, balances, directBala
   }
 
   const valueSummary = summarize(transfers, balances, capacity);
-  const redemption = redemptionVerdict(cash, needed, valueSummary.totalCostUSD);
+  const redemption = redemptionVerdict(cash, needed, valueSummary.totalCostUSD, surcharge.amount);
 
   // ── Rationale ───────────────────────────────────────────────────────────────
   const directPrefix =
@@ -252,6 +270,18 @@ export function computeBlueprint({ program, pointsRequired, balances, directBala
       ? getCashBallpark(regionForAirport(origin), regionForAirport(destination), cabin)
       : null;
 
+  // Programs the user can actually reach (at least one bank partners with them,
+  // or the user holds direct miles). Used to filter "cheaper program" suggestions.
+  const reachablePrograms = new Set();
+  for (const prog of Object.values(programs)) {
+    for (const a of Object.keys(prog.partners)) reachablePrograms.add(a);
+  }
+  if (directBalances && typeof directBalances === "object") {
+    for (const [a, amt] of Object.entries(directBalances)) {
+      if ((Number(amt) || 0) > 0) reachablePrograms.add(a);
+    }
+  }
+
   // Award-quality judgment: compare the quoted pointsRequired against the
   // chart baseline for this program/route/cabin (if provided).
   const awardQuality =
@@ -264,8 +294,14 @@ export function computeBlueprint({ program, pointsRequired, balances, directBala
           quotedMiles: needed,
           cashPrice: cash,
           allPrograms: allAirlines,
+          reachablePrograms,
         })
       : null;
+
+  // Surface surcharge warning if significant
+  if (surcharge.amount > 0) {
+    warns.push(`${airline} typically charges ~$${surcharge.amount.toLocaleString()} in carrier surcharges (YQ fees) on this route — you pay this in cash on top of the miles.${surcharge.note ? ` ${surcharge.note}` : ""}`);
+  }
 
   return {
     isPossible: true,
@@ -277,6 +313,7 @@ export function computeBlueprint({ program, pointsRequired, balances, directBala
     directApplied,
     valueSummary,
     redemption,
+    surcharge,
     awardQuality,
     fareQuality,
     rationale,
@@ -320,28 +357,40 @@ function summarize(transfers, balances, capacity) {
 }
 
 // Is this award actually a good deal vs paying cash? Needs the ticket's cash price.
-function redemptionVerdict(cash, needed, totalCostUSD) {
+// surchargeUSD = estimated carrier-imposed fees the traveler pays cash on top of miles.
+function redemptionVerdict(cash, needed, totalCostUSD, surchargeUSD = 0) {
   if (!cash || !needed) return null;
-  const centsPerPoint = usd((cash / needed) * 100); // ¢ per airline mile
-  const netSavingsUSD = usd(cash - totalCostUSD); // cash avoided minus $ of points burned
+  const yq = Math.max(0, surchargeUSD || 0);
+  // Naive cpp ignores surcharges — shown for reference so users can compare to
+  // standard "cents per point" benchmarks they see on blogs.
+  const centsPerPoint = usd((cash / needed) * 100);
+  // Adjusted cpp: what your miles are truly worth after you account for the cash
+  // surcharge you still have to pay. This is the number the verdict keys on.
+  const adjCpp = yq > 0 ? usd(((cash - yq) / needed) * 100) : centsPerPoint;
+  // Net savings = (cash you'd otherwise pay) − ($ value of points burned) − surcharge
+  const netSavingsUSD = usd(cash - totalCostUSD - yq);
+
   let verdict, tone;
-  if (totalCostUSD > 0 && cash <= totalCostUSD) {
-    verdict = `At ${centsPerPoint}¢/mile this award is worth LESS than the points you'd burn — paying the $${cash.toLocaleString()} cash fare and keeping your points is the better move.`;
+  const yqNote = yq > 0 ? ` After ~$${yq.toLocaleString()} in carrier surcharges,` : "";
+  const adjLabel = yq > 0 ? ` (${adjCpp}¢ adjusted for surcharges)` : "";
+
+  if (totalCostUSD > 0 && cash <= totalCostUSD + yq) {
+    verdict = `At ${centsPerPoint}¢/mile${adjLabel} this award costs MORE than paying cash when you include the ~$${totalCostUSD.toLocaleString()} of points${yq > 0 ? ` + ~$${yq.toLocaleString()} in carrier fees` : ""} — paying the $${cash.toLocaleString()} cash fare and keeping your points is the better move.`;
     tone = "bad";
-  } else if (centsPerPoint >= redemptionTiers.great) {
-    verdict = `Excellent redemption: ${centsPerPoint}¢/mile. You're getting a $${cash.toLocaleString()} ticket and netting ~$${netSavingsUSD.toLocaleString()} vs cash. Transfer with confidence.`;
+  } else if (adjCpp >= redemptionTiers.great) {
+    verdict = `Excellent redemption: ${centsPerPoint}¢/mile${adjLabel}.${yqNote} netting ~$${netSavingsUSD.toLocaleString()} vs the cash fare. Transfer with confidence.`;
     tone = "great";
-  } else if (centsPerPoint >= redemptionTiers.good) {
-    verdict = `Solid redemption: ${centsPerPoint}¢/mile, netting ~$${netSavingsUSD.toLocaleString()} vs the cash fare.`;
+  } else if (adjCpp >= redemptionTiers.good) {
+    verdict = `Solid redemption: ${centsPerPoint}¢/mile${adjLabel}.${yqNote} netting ~$${netSavingsUSD.toLocaleString()} vs the cash fare.`;
     tone = "good";
-  } else if (centsPerPoint >= redemptionTiers.fair) {
-    verdict = `Fair redemption: ${centsPerPoint}¢/mile. Decent, but not a standout — make sure you're not better off saving these points for a higher-value award.`;
+  } else if (adjCpp >= redemptionTiers.fair) {
+    verdict = `Fair redemption: ${centsPerPoint}¢/mile${adjLabel}.${yqNote} decent, but not a standout — make sure you're not better off saving these points for a higher-value award.`;
     tone = "fair";
   } else {
-    verdict = `Weak redemption: only ${centsPerPoint}¢/mile. Strongly consider paying the $${cash.toLocaleString()} cash fare and keeping your points for a better use.`;
+    verdict = `Weak redemption: ${centsPerPoint}¢/mile${adjLabel}.${yqNote} strongly consider paying the $${cash.toLocaleString()} cash fare and keeping your points for a better use.`;
     tone = "bad";
   }
-  return { centsPerPoint, netSavingsUSD, verdict, tone };
+  return { centsPerPoint, adjCentsPerPoint: yq > 0 ? adjCpp : null, surchargeUSD: yq, netSavingsUSD, verdict, tone };
 }
 
 function sameAllianceHoldings(targetAirline, directBalances) {

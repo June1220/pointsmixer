@@ -138,7 +138,7 @@ export function estimateAwardCost({ program, origin, destination, cabin, cashPri
 //   note
 // }
 // ─────────────────────────────────────────────────────────────────────────────
-export function judgeAward({ program, origin, destination, cabin, quotedMiles, cashPrice, allPrograms = [] }) {
+export function judgeAward({ program, origin, destination, cabin, quotedMiles, cashPrice, allPrograms = [], reachablePrograms = null }) {
   const cab = normalizeCabin(cabin);
   const quoted = Number(quotedMiles) || 0;
   const chartClass = programChartClass(program);
@@ -151,7 +151,7 @@ export function judgeAward({ program, origin, destination, cabin, quotedMiles, c
     const distanceMi = greatCircleMiles(origin, destination);
     const dynamicRange = getDynamicRangeScaled(program, fromRegion, toRegion, cab, origin, destination, distanceMi);
     const rangeClass = dynamicRange ? classifyVsRange(quotedMiles, dynamicRange) : null;
-    const alt = bestFixedAlt(program, origin, destination, cab, cashPrice, allPrograms);
+    const alt = bestFixedAlt(program, origin, destination, cab, cashPrice, allPrograms, reachablePrograms);
     return {
       band: "dynamic",
       baselineMiles: null,
@@ -199,7 +199,7 @@ export function judgeAward({ program, origin, destination, cabin, quotedMiles, c
   }
 
   const alt = (band === "high" || band === "typical")
-    ? bestFixedAlt(program, origin, destination, cab, cashPrice, allPrograms)
+    ? bestFixedAlt(program, origin, destination, cab, cashPrice, allPrograms, reachablePrograms)
     : null;
 
   return {
@@ -216,11 +216,14 @@ export function judgeAward({ program, origin, destination, cabin, quotedMiles, c
 
 // Find the lowest-baseline fixed-chart program (other than `program`) that
 // could also book this route, for the cheaper-program hint.
-function bestFixedAlt(excludeProgram, origin, destination, cabin, cashPrice, allPrograms) {
+// `reachablePrograms` (Set or null): if provided, only suggest programs the user
+// can actually fund (i.e. at least one bank transfers to them, or they hold direct miles).
+function bestFixedAlt(excludeProgram, origin, destination, cabin, cashPrice, allPrograms, reachablePrograms = null) {
   let best = null;
   for (const prog of allPrograms) {
     if (prog === excludeProgram) continue;
     if (!programChartClass(prog)) continue; // skip dynamic
+    if (reachablePrograms && !reachablePrograms.has(prog)) continue;
     const est = estimateAwardCost({ program: prog, origin, destination, cabin, cashPrice, oneWay: true });
     if (!est.points) continue;
     if (!best || est.points < best.baseline) {

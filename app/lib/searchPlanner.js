@@ -41,6 +41,9 @@ function buildCandidate(offer, program, awardType, { origin, destination, cabin,
     balances,
     directBalances,
     cashPrice: offer.cashPrice,
+    origin: offer.origin || origin,
+    destination: offer.destination || destination,
+    cabin,
   });
 
   return {
