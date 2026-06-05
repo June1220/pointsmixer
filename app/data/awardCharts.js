@@ -26,7 +26,7 @@
 //   Aeromexico, United own metal, Air Canada own metal.
 // ─────────────────────────────────────────────────────────────────────────────
 
-export const awardChartsAsOf = "2026-06-04";
+export const awardChartsAsOf = "2026-06-05";
 export const awardChartsSource = "https://awardtravelfinder.com/award-charts — verified 2026-06-04";
 
 // Award geography zones.
@@ -115,9 +115,14 @@ export const programMeta = {
   "Singapore":     { chartClass: "zone",     rtOnly: false },
   "Qantas":        { chartClass: "zone",     rtOnly: false },
   "Japan Airlines":{ chartClass: "zone",     rtOnly: false },
+  // CLASS A — zone-based fixed charts (continued)
+  "TAP Air Portugal":{ chartClass: "zone",    rtOnly: false }, // Star Alliance partner chart
+  "Thai Airways":  { chartClass: "zone",      rtOnly: false }, // Royal Orchid Plus zone chart
+  "Korean Air":    { chartClass: "zone",      rtOnly: false }, // SKYPASS zone chart (SkyTeam)
   // CLASS B — distance-based fixed charts
   "British Airways":{ chartClass: "distance", rtOnly: false },
   "Iberia":        { chartClass: "distance",  rtOnly: false }, // same Avios chart as BA
+  "Aer Lingus":    { chartClass: "distance",  rtOnly: false }, // AerClub uses Avios distance chart
   // CLASS C — dynamic (no fixed saver baseline)
   "United":        { chartClass: null },  // own metal dynamic; partner ~fixed handled separately
   "Delta":         { chartClass: null },
@@ -130,13 +135,11 @@ export const programMeta = {
   "EVA Air":       { chartClass: null },  // dynamic
   "Qatar":         { chartClass: null },  // dynamic
   "Etihad":        { chartClass: null },  // dynamic
-  "Finnair":       { chartClass: null },  // dynamic
-  "TAP Air Portugal":{ chartClass: null },// dynamic
+  "Finnair":       { chartClass: null },  // dynamic; Avios-like but rates vary
   "Hawaiian":      { chartClass: null },
   "JetBlue":       { chartClass: null },
   "Southwest":     { chartClass: null },
   "Spirit":        { chartClass: null },
-  "Aer Lingus":    { chartClass: null },
 };
 
 export function programChartClass(program) {
@@ -294,6 +297,95 @@ export const qantasChart = {
   [pairKey("Southeast Asia", "Oceania")]:          C(20000, 42500, null),
 };
 
+// ── TAP Air Portugal Miles&Go — Star Alliance zone chart ─────────────────────
+// Source: flytap.com/en-us/miles-and-go/rewards-flights/award-chart
+//         awardtravelfinder.com/award-charts/tap-air-portugal — verified 2026-06-05
+// One-way saver miles for partner (Star Alliance) awards.
+export const tapChart = {
+  [pairKey("North America", "North America")]:     C(10000, 22500, null),
+  [pairKey("North America", "Central America/Caribbean")]: C(12500, 25000, null),
+  [pairKey("North America", "South America")]:     C(20000, 40000, null),
+  [pairKey("North America", "Europe")]:            C(30000, 60000, 90000),
+  [pairKey("North America", "North Asia")]:        C(37500, 67500, null),
+  [pairKey("North America", "Southeast Asia")]:    C(37500, 67500, null),
+  [pairKey("North America", "South Asia")]:        C(37500, 67500, null),
+  [pairKey("North America", "Middle East")]:       C(35000, 62500, null),
+  [pairKey("North America", "Africa")]:            C(35000, 62500, null),
+  [pairKey("North America", "Oceania")]:           C(42500, 75000, null),
+  [pairKey("Europe", "Europe")]:                   C(10000, 20000, null),
+  [pairKey("Europe", "North Asia")]:               C(32500, 60000, null),
+  [pairKey("Europe", "Southeast Asia")]:           C(32500, 60000, null),
+  [pairKey("Europe", "South Asia")]:               C(27500, 52500, null),
+  [pairKey("Europe", "Middle East")]:              C(20000, 40000, null),
+  [pairKey("Europe", "Africa")]:                   C(20000, 37500, null),
+  [pairKey("Europe", "Oceania")]:                  C(42500, 77500, null),
+  [pairKey("North Asia", "North Asia")]:           C(12500, 25000, null),
+  [pairKey("North Asia", "Southeast Asia")]:       C(17500, 35000, null),
+  [pairKey("North Asia", "Oceania")]:              C(32500, 60000, null),
+  [pairKey("Southeast Asia", "Southeast Asia")]:   C(10000, 22500, null),
+  [pairKey("Southeast Asia", "Oceania")]:          C(27500, 52500, null),
+};
+
+// ── Thai Airways Royal Orchid Plus — Star Alliance zone chart ─────────────────
+// Source: thaiairways.com/en_TH/privilege_lounge/rop/award_flights/award_chart.page
+//         awardtravelfinder.com/award-charts/thai-airways — verified 2026-06-05
+// One-way saver miles for partner (Star Alliance) awards.
+export const thaiChart = {
+  [pairKey("North America", "North America")]:     C(10000, 20000, null),
+  [pairKey("North America", "Central America/Caribbean")]: C(15000, 30000, null),
+  [pairKey("North America", "South America")]:     C(25000, 45000, null),
+  [pairKey("North America", "Europe")]:            C(35000, 70000, 100000),
+  [pairKey("North America", "North Asia")]:        C(30000, 55000,  80000),
+  [pairKey("North America", "Southeast Asia")]:    C(40000, 80000, 115000),
+  [pairKey("North America", "South Asia")]:        C(40000, 80000, null),
+  [pairKey("North America", "Middle East")]:       C(35000, 70000, null),
+  [pairKey("North America", "Oceania")]:           C(40000, 80000, null),
+  [pairKey("Europe", "Europe")]:                   C(10000, 20000, null),
+  [pairKey("Europe", "North Asia")]:               C(30000, 60000, 90000),
+  [pairKey("Europe", "Southeast Asia")]:           C(32500, 65000, 95000),
+  [pairKey("Europe", "South Asia")]:               C(25000, 50000, null),
+  [pairKey("Europe", "Middle East")]:              C(20000, 40000, null),
+  [pairKey("Europe", "Africa")]:                   C(25000, 50000, null),
+  [pairKey("Europe", "Oceania")]:                  C(42500, 85000, null),
+  [pairKey("North Asia", "North Asia")]:           C(10000, 20000, null),
+  [pairKey("North Asia", "Southeast Asia")]:       C(12500, 25000, 40000),
+  [pairKey("North Asia", "Oceania")]:              C(30000, 60000, null),
+  [pairKey("Southeast Asia", "Southeast Asia")]:   C(10000, 20000, null),
+  [pairKey("Southeast Asia", "Oceania")]:          C(25000, 50000, null),
+  [pairKey("Southeast Asia", "South Asia")]:       C(12500, 25000, null),
+  [pairKey("Middle East", "North Asia")]:          C(25000, 50000, null),
+  [pairKey("Middle East", "Southeast Asia")]:      C(20000, 40000, null),
+};
+
+// ── Korean Air SKYPASS — SkyTeam zone chart ───────────────────────────────────
+// Source: koreanair.com/content/dam/koreanair/en/skypass/pdf/award_chart.pdf
+//         awardtravelfinder.com/award-charts/korean-air — verified 2026-06-05
+// One-way saver miles for partner (SkyTeam) awards.
+// NOTE: No US bank currently transfers directly to Korean Air SKYPASS.
+//       Useful for users holding SKYPASS miles earned via Korean Air credit cards.
+export const koreanAirChart = {
+  [pairKey("North America", "North America")]:     C( 7500, 15000, null),
+  [pairKey("North America", "Central America/Caribbean")]: C(12500, 25000, null),
+  [pairKey("North America", "South America")]:     C(25000, 50000, null),
+  [pairKey("North America", "Europe")]:            C(35000, 70000,  90000),
+  [pairKey("North America", "North Asia")]:        C(30000, 55000,  75000),
+  [pairKey("North America", "Southeast Asia")]:    C(35000, 70000,  90000),
+  [pairKey("North America", "South Asia")]:        C(35000, 70000, null),
+  [pairKey("North America", "Middle East")]:       C(35000, 70000, null),
+  [pairKey("North America", "Oceania")]:           C(37500, 75000, null),
+  [pairKey("Europe", "Europe")]:                   C(10000, 20000, null),
+  [pairKey("Europe", "North Asia")]:               C(25000, 55000,  70000),
+  [pairKey("Europe", "Southeast Asia")]:           C(30000, 60000, null),
+  [pairKey("Europe", "South Asia")]:               C(27500, 55000, null),
+  [pairKey("Europe", "Middle East")]:              C(22500, 45000, null),
+  [pairKey("Europe", "Oceania")]:                  C(40000, 80000, null),
+  [pairKey("North Asia", "North Asia")]:           C( 7500, 15000, null),
+  [pairKey("North Asia", "Southeast Asia")]:       C(15000, 30000, null),
+  [pairKey("North Asia", "Oceania")]:              C(30000, 55000, null),
+  [pairKey("Southeast Asia", "Southeast Asia")]:   C( 7500, 15000, null),
+  [pairKey("Southeast Asia", "Oceania")]:          C(25000, 50000, null),
+};
+
 // Dispatch table: program → its zone chart.
 export const zoneCharts = {
   "ANA": anaPartnerChartRT,
@@ -303,6 +395,9 @@ export const zoneCharts = {
   "Singapore": singaporeChart,
   "Japan Airlines": jalChart,
   "Qantas": qantasChart,
+  "TAP Air Portugal": tapChart,
+  "Thai Airways": thaiChart,
+  "Korean Air": koreanAirChart,
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -326,7 +421,8 @@ export const aviosBands = [
 ];
 
 // Programs that use the Avios distance chart.
-export const aviosPrograms = new Set(["British Airways", "Iberia"]);
+// Aer Lingus AerClub uses the same Avios distance bands as BA Executive Club.
+export const aviosPrograms = new Set(["British Airways", "Iberia", "Aer Lingus"]);
 
 export function aviosMilesForCabin(flightDistanceMi, cabin) {
   const band = aviosBands.find((b) => flightDistanceMi <= b.maxMiles);
@@ -362,8 +458,8 @@ export const carriers = {
   AF: { airline: "Flying Blue",       alliance: "SkyTeam" },
   KL: { airline: "Flying Blue",       alliance: "SkyTeam" },
   AM: { airline: "Aeromexico",        alliance: "SkyTeam" },
+  KE: { airline: "Korean Air",        alliance: "SkyTeam" },
   AZ: { airline: null,                alliance: "SkyTeam" },
-  KE: { airline: null,                alliance: "SkyTeam" },
   MU: { airline: null,                alliance: "SkyTeam" },
   VS: { airline: "Virgin Atlantic",   alliance: null },
   // Oneworld

@@ -268,6 +268,9 @@ export const airlineAliases = [
   ["qatar", "Qatar"],
   ["turkish", "Turkish"],
   ["miles&smiles", "Turkish"],
+  ["korean air", "Korean Air"],
+  ["skypass", "Korean Air"],
+  ["koreanair", "Korean Air"],
   ["thai", "Thai Airways"],
   ["tap", "TAP Air Portugal"],
   ["finnair", "Finnair"],
@@ -301,6 +304,7 @@ export const alliances = {
   Aeromexico: "SkyTeam",
   Delta: "SkyTeam",
   "Flying Blue": "SkyTeam", // Air France / KLM
+  "Korean Air": "SkyTeam",
   // Oneworld
   "Alaska Airlines": "Oneworld",
   "American Airlines": "Oneworld",
@@ -317,10 +321,16 @@ export const alliances = {
 // cheapest-dollar-first, derived purely from `pointValues` above. A currency
 // "preserved" simply means it costs more per point, so it's tapped last.
 
-// Sorted, de-duplicated list of every airline any program transfers to.
-// Used to populate the airline dropdown in the UI (kept in sync automatically).
+// Airlines users may hold miles in directly but that no US bank transfers to.
+// Included in the direct-miles dropdown alongside bank transfer destinations.
+export const standalonePrograms = [
+  "Korean Air", // SKYPASS — no bank direct transfer; earned via KAL credit cards
+];
+
+// Sorted, de-duplicated list of every airline relevant to the tool.
+// Includes bank transfer destinations + standalone direct-balance programs.
 export const allAirlines = (() => {
-  const set = new Set();
+  const set = new Set(standalonePrograms);
   for (const prog of Object.values(programs)) {
     for (const airline of Object.keys(prog.partners)) set.add(airline);
   }

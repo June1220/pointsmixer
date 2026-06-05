@@ -776,6 +776,92 @@ export const dynamicRanges = {
     },
   },
 
+  // ── JetBlue TrueBlue ─────────────────────────────────────────────────────
+  // Fully dynamic — points cost = cashFare / 1.3¢ roughly, but varies widely.
+  // Partners: Chase UR 1:1, Amex MR 0.8:1, Citi TYP 1:1, Bilt 1:1.
+  // Mint (lie-flat on transcon/transatlantic) is priced like a premium-cabin award.
+  // Source: thepointsguy.com/loyalty-programs/jetblue-trueblue — Jun 2026
+  "JetBlue": {
+    [pk("North America", "North America")]: {
+      economy:  { low:  3000, typical:  8000, high: 20000,
+                  note: "Domestic/Caribbean routes. Off-peak as low as 3k; peak/holiday up to 20k+.",
+                  source: "thepointsguy.com Jun 2026" },
+      business: { low:  8000, typical: 18000, high: 40000,
+                  note: "Mint on transcon (JFK/BOS/FLL↔LAX/SFO/LAS). Some of the best lie-flat value in TrueBlue.",
+                  source: "thepointsguy.com Jun 2026" },
+    },
+    [pk("North America", "Central America/Caribbean")]: {
+      economy:  { low:  3500, typical:  9000, high: 22000,
+                  source: "thepointsguy.com Jun 2026" },
+    },
+    [pk("North America", "South America")]: {
+      economy:  { low:  8000, typical: 20000, high: 45000,
+                  source: "thepointsguy.com Jun 2026" },
+      business: { low: 18000, typical: 40000, high: 80000,
+                  source: "thepointsguy.com Jun 2026" },
+    },
+    [pk("North America", "Europe")]: {
+      economy:  { low: 18000, typical: 35000, high: 70000,
+                  note: "JetBlue Mint transatlantic (JFK/BOS↔LHR/AMS/CDG/MAD). Economy widely variable.",
+                  source: "thepointsguy.com Jun 2026" },
+      business: { low: 25000, typical: 50000, high: 90000,
+                  note: "Mint lie-flat. Good value vs cash; availability limited to JetBlue-operated routes.",
+                  source: "thepointsguy.com Jun 2026" },
+    },
+  },
+
+  // ── Finnair Plus ──────────────────────────────────────────────────────────
+  // Oneworld member; dynamic pricing since ~2023.
+  // Partners: Capital One 1:1.
+  // Nordic routes and connections are Finnair's sweet spot. Long-haul via HEL hub.
+  // Source: thepointsguy.com/loyalty-programs/finnair-plus — Jun 2026
+  "Finnair": {
+    [pk("North America", "Europe")]: {
+      economy:  { low: 20000, typical: 35000, high:  70000,
+                  note: "Routes via HEL. Off-peak JFK/BOS/ORD/LAX↔HEL available sub-25k.",
+                  source: "thepointsguy.com Jun 2026" },
+      business: { low: 45000, typical: 70000, high: 120000,
+                  note: "Finnair long-haul business is well-regarded. Bookable via Oneworld partners at lower fixed rates.",
+                  source: "thepointsguy.com Jun 2026" },
+    },
+    [pk("Europe", "North Asia")]: {
+      economy:  { low: 25000, typical: 40000, high: 80000,
+                  source: "thepointsguy.com Jun 2026" },
+      business: { low: 50000, typical: 75000, high: 130000,
+                  note: "HEL↔NRT/HND/PEK/HKG. Consider booking via Oneworld partner programs instead.",
+                  source: "thepointsguy.com Jun 2026" },
+    },
+    [pk("Europe", "Southeast Asia")]: {
+      economy:  { low: 25000, typical: 40000, high:  80000,
+                  source: "thepointsguy.com Jun 2026" },
+      business: { low: 50000, typical: 75000, high: 130000,
+                  source: "thepointsguy.com Jun 2026" },
+    },
+    [pk("Europe", "Europe")]: {
+      economy:  { low:  8000, typical: 15000, high:  35000,
+                  source: "thepointsguy.com Jun 2026" },
+    },
+  },
+
+  // ── Southwest Rapid Rewards ───────────────────────────────────────────────
+  // Fixed-value model: points ≈ 1.35¢/pt toward any Southwest fare.
+  // Partners: Chase UR 1:1, Bilt 1:1.
+  // No cabins — Southwest is all-economy. Points cost directly tracks cash price.
+  // Domestic US / Caribbean / Mexico / Central America only.
+  // Source: thepointsguy.com/loyalty-programs/southwest-rapid-rewards — Jun 2026
+  "Southwest": {
+    [pk("North America", "North America")]: {
+      economy:  { low:  3000, typical:  9000, high: 25000,
+                  note: "Points ≈ 1.35¢ each toward any Southwest fare. Buy cheap fares for best value; Wanna Get Away fares are the sweet spot. Anytime/Business Select fares cost far more points for little extra.",
+                  source: "thepointsguy.com Jun 2026" },
+    },
+    [pk("North America", "Central America/Caribbean")]: {
+      economy:  { low:  5000, typical: 12000, high: 30000,
+                  note: "International fares to Caribbean/Mexico/Central America. Points value same as domestic.",
+                  source: "thepointsguy.com Jun 2026" },
+    },
+  },
+
   // ── EVA Air Infinity MileageLands ─────────────────────────────────────────
   // Fully dynamic; Star Alliance.
   // Source: thepointsguy.com/loyalty-programs/eva-air-infinity-mileagelands — Jun 2026
