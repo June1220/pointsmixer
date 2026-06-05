@@ -337,6 +337,34 @@ input[type=number]::-webkit-outer-spin-button { opacity: .3; }
 .alt-nums { font-size: 12px; color: var(--muted); }
 .alt-no { color: var(--neg); }
 
+/* ── Airport combobox ────────────────────────────────────────────────────── */
+.cb-wrap { position: relative; }
+.cb-input {
+  width: 100%; background: var(--card); border: 1px solid var(--line-strong);
+  border-radius: var(--radius-sm); color: var(--ink); font-family: inherit;
+  font-size: 14.5px; padding: 12px 14px; outline: none;
+  transition: border-color .15s, box-shadow .15s;
+}
+.cb-input:focus { border-color: var(--green); box-shadow: 0 0 0 3px rgba(31,107,74,0.12); }
+.cb-input::placeholder { color: var(--faint); }
+.cb-list {
+  position: absolute; top: calc(100% + 4px); left: 0; right: 0; z-index: 50;
+  background: var(--card); border: 1px solid var(--line-strong);
+  border-radius: var(--radius-sm); box-shadow: 0 4px 16px rgba(0,0,0,0.10);
+  max-height: 220px; overflow-y: auto; display: none;
+}
+.cb-list.open { display: block; }
+.cb-item {
+  padding: 10px 14px; font-size: 13.5px; cursor: pointer;
+  display: flex; align-items: baseline; gap: 8px; color: var(--body);
+  border-bottom: 1px solid var(--line);
+}
+.cb-item:last-child { border-bottom: none; }
+.cb-item:hover, .cb-item.hi { background: var(--green-soft); color: var(--green); }
+.cb-item .cb-code { font-weight: 700; color: var(--ink); flex-shrink: 0; min-width: 36px; }
+.cb-item .cb-name { color: var(--muted); font-size: 12px; }
+.cb-empty { padding: 10px 14px; font-size: 13px; color: var(--faint); }
+
 ::-webkit-scrollbar { width: 9px; height: 9px; }
 ::-webkit-scrollbar-track { background: var(--canvas); }
 ::-webkit-scrollbar-thumb { background: var(--line-strong); border-radius: 5px; }

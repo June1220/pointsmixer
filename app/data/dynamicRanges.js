@@ -796,23 +796,251 @@ export const dynamicRanges = {
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
+// REGION AVERAGE DISTANCES (median great-circle miles per region pair)
+// Computed from app/data/airportCoords.js — used to scale regional ranges to
+// route-specific estimates. Rounded to nearest 100mi.
+// ─────────────────────────────────────────────────────────────────────────────
+export const regionAvgDistanceMi = {
+  [pk("Africa", "Africa")]: 2500,
+  [pk("Africa", "Central America/Caribbean")]: 7100,
+  [pk("Africa", "Europe")]: 3500,
+  [pk("Africa", "Middle East")]: 3000,
+  [pk("Africa", "North America")]: 7600,
+  [pk("Africa", "North Asia")]: 7000,
+  [pk("Africa", "Oceania")]: 7800,
+  [pk("Africa", "South America")]: 6000,
+  [pk("Africa", "South Asia")]: 4300,
+  [pk("Africa", "Southeast Asia")]: 5800,
+  [pk("Central America/Caribbean", "Central America/Caribbean")]: 1100,
+  [pk("Central America/Caribbean", "Europe")]: 5300,
+  [pk("Central America/Caribbean", "Middle East")]: 8000,
+  [pk("Central America/Caribbean", "North America")]: 2100,
+  [pk("Central America/Caribbean", "North Asia")]: 8600,
+  [pk("Central America/Caribbean", "Oceania")]: 8900,
+  [pk("Central America/Caribbean", "South America")]: 3200,
+  [pk("Central America/Caribbean", "South Asia")]: 9700,
+  [pk("Central America/Caribbean", "Southeast Asia")]: 10800,
+  [pk("Europe", "Europe")]: 800,
+  [pk("Europe", "Middle East")]: 2900,
+  [pk("Europe", "North America")]: 4800,
+  [pk("Europe", "North Asia")]: 5700,
+  [pk("Europe", "Oceania")]: 10200,
+  [pk("Europe", "South America")]: 6400,
+  [pk("Europe", "South Asia")]: 4500,
+  [pk("Europe", "Southeast Asia")]: 6400,
+  [pk("Middle East", "Middle East")]: 800,
+  [pk("Middle East", "North America")]: 7300,
+  [pk("Middle East", "North Asia")]: 4800,
+  [pk("Middle East", "Oceania")]: 7700,
+  [pk("Middle East", "South America")]: 8000,
+  [pk("Middle East", "South Asia")]: 2100,
+  [pk("Middle East", "Southeast Asia")]: 4300,
+  [pk("North America", "North America")]: 1300,
+  [pk("North America", "North Asia")]: 6800,
+  [pk("North America", "Oceania")]: 9000,
+  [pk("North America", "South America")]: 4800,
+  [pk("North America", "South Asia")]: 8500,
+  [pk("North America", "Southeast Asia")]: 8900,
+  [pk("North Asia", "North Asia")]: 1100,
+  [pk("North Asia", "Oceania")]: 4900,
+  [pk("North Asia", "South America")]: 11400,
+  [pk("North Asia", "South Asia")]: 3200,
+  [pk("North Asia", "Southeast Asia")]: 2400,
+  [pk("Oceania", "Oceania")]: 1600,
+  [pk("Oceania", "South America")]: 8100,
+  [pk("Oceania", "South Asia")]: 6100,
+  [pk("Oceania", "Southeast Asia")]: 3900,
+  [pk("South America", "South America")]: 1800,
+  [pk("South America", "South Asia")]: 9700,
+  [pk("South America", "Southeast Asia")]: 10700,
+  [pk("South Asia", "South Asia")]: 900,
+  [pk("South Asia", "Southeast Asia")]: 2300,
+  [pk("Southeast Asia", "Southeast Asia")]: 1200,
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+// CITY-PAIR OVERRIDES
+// Explicit per-route data for high-volume routes where demand-based pricing
+// diverges from the distance-scaled estimate. routeKey = [o,d].sort().join("-").
+// Checked before distance scaling. Only for routes with published source data.
+// ─────────────────────────────────────────────────────────────────────────────
+const rk = (a, b) => [a, b].sort().join("-");
+
+export const cityPairOverrides = {
+  "Delta": {
+    [rk("JFK","LHR")]: { business: { low:70000, typical:130000, high:500000,
+      note:"JFK→LHR is Delta's flagship transatlantic. Sweet deals at 70k–97k on low-demand dates.",
+      source:"thriftytraveler.com/news/points/book-business-class-delta-skymiles Jun 2026" }},
+    [rk("JFK","CDG")]: { business: { low:70000, typical:140000, high:520000,
+      source:"awardwallet.com Jun 2026" }},
+    [rk("JFK","AMS")]: { business: { low:70000, typical:135000, high:500000,
+      source:"awardwallet.com Jun 2026" }},
+    [rk("ATL","LHR")]: { business: { low:75000, typical:150000, high:550000,
+      note:"ATL is a Delta hub — more space but still dynamic.",
+      source:"awardwallet.com Jun 2026" }},
+    [rk("JFK","NRT")]: { business: { low:80000, typical:170000, high:550000,
+      source:"awardwallet.com Jun 2026" }},
+    [rk("LAX","NRT")]: { business: { low:80000, typical:160000, high:520000,
+      source:"awardwallet.com Jun 2026" }},
+    [rk("LAX","HND")]: { business: { low:80000, typical:160000, high:520000,
+      source:"awardwallet.com Jun 2026" }},
+  },
+  "Flying Blue": {
+    [rk("JFK","CDG")]: { economy: { low:12500, typical:25000, high:50000,
+      note:"Direct AF JFK→CDG. Standard 25k economy, promo from 18,750.",
+      source:"thepointsguy.com Jun 2026" },
+      business: { low:45000, typical:60000, high:100000,
+      note:"Standard 60k, promo to 45k. Add $250 surcharge.",
+      source:"thepointsguy.com Jun 2026" }},
+    [rk("JFK","LHR")]: { economy: { low:12500, typical:25000, high:50000,
+      source:"thepointsguy.com Jun 2026" },
+      business: { low:45000, typical:60000, high:100000,
+      note:"On KLM/AF codeshare. Comparable to CDG route.",
+      source:"thepointsguy.com Jun 2026" }},
+    [rk("JFK","AMS")]: { economy: { low:12500, typical:25000, high:50000,
+      source:"thepointsguy.com Jun 2026" },
+      business: { low:45000, typical:60000, high:100000,
+      note:"KLM flagship JFK→AMS. Standard 60k, promo to 45k.",
+      source:"thepointsguy.com Jun 2026" }},
+    [rk("LAX","CDG")]: { business: { low:45000, typical:60000, high:110000,
+      note:"Slightly longer than JFK, comparable pricing.",
+      source:"thepointsguy.com Jun 2026" }},
+  },
+  "American Airlines": {
+    [rk("JFK","LHR")]: { business: { low:57500, typical:62000, high:300000,
+      note:"BA JFK→LHR partner. 57.5k is the sweet spot; surcharges ~$700.",
+      source:"thepointsguy.com Jun 2026" }},
+    [rk("JFK","MAD")]: { business: { low:54000, typical:58000, high:200000,
+      note:"Iberia JFK→MAD partner. 54k sweet spot + very low surcharges.",
+      source:"thepointsguy.com/airline/sweet-spots-american-airlines-aadvantage Jun 2026" }},
+    [rk("ORD","LHR")]: { business: { low:57500, typical:62000, high:300000,
+      source:"thepointsguy.com Jun 2026" }},
+    [rk("MIA","MAD")]: { business: { low:54000, typical:58000, high:200000,
+      source:"thepointsguy.com Jun 2026" }},
+    [rk("JFK","NRT")]: { business: { low:60000, typical:75000, high:250000,
+      note:"JL partner JFK→NRT. 60k sweet spot + low fees.",
+      source:"thepointsguy.com Jun 2026" }},
+    [rk("LAX","NRT")]: { business: { low:60000, typical:75000, high:250000,
+      note:"JL partner LAX→NRT.",
+      source:"thepointsguy.com Jun 2026" }},
+    [rk("JFK","HKG")]: { business: { low:65000, typical:80000, high:260000,
+      note:"Cathay partner. Alaska Miles is often better value for CX.",
+      source:"thepointsguy.com Jun 2026" }},
+  },
+  "United": {
+    [rk("EWR","LHR")]: { business: { low:55000, typical:75000, high:180000,
+      note:"United's London hub. Polaris business.",
+      source:"upgradedpoints.com Jun 2026" }},
+    [rk("EWR","FRA")]: { business: { low:55000, typical:75000, high:180000,
+      source:"upgradedpoints.com Jun 2026" }},
+    [rk("ORD","LHR")]: { business: { low:55000, typical:75000, high:180000,
+      source:"upgradedpoints.com Jun 2026" }},
+    [rk("SFO","NRT")]: { business: { low:60000, typical:85000, high:210000,
+      source:"upgradedpoints.com Jun 2026" }},
+    [rk("SFO","ICN")]: { business: { low:60000, typical:85000, high:210000,
+      source:"upgradedpoints.com Jun 2026" }},
+    [rk("LAX","NRT")]: { business: { low:60000, typical:85000, high:210000,
+      source:"upgradedpoints.com Jun 2026" }},
+    [rk("EWR","SYD")]: { business: { low:80000, typical:150000, high:380000,
+      note:"EWR→SYD via LAX. One of the longest routes.",
+      source:"upgradedpoints.com Jun 2026" }},
+  },
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
 // Lookup helpers
 // ─────────────────────────────────────────────────────────────────────────────
 
+function scaleRange(base, scaleFactor, cabin) {
+  if (!base) return null;
+  // Cap scale at 0.5–2.0 to avoid extreme outliers
+  const s = Math.max(0.5, Math.min(2.0, scaleFactor));
+  const round = (n) => {
+    if (n >= 100000) return Math.round(n / 5000) * 5000;
+    if (n >= 20000)  return Math.round(n / 2500) * 2500;
+    return Math.round(n / 1000) * 1000;
+  };
+  return {
+    low:     round(base.low     * s),
+    typical: round(base.typical * s),
+    high:    round(base.high    * s),
+    note:    base.note,
+    source:  base.source,
+  };
+}
+
 /**
  * Get the historical range for a dynamic program × region pair × cabin.
- * Returns { low, typical, high, note, source } or null if not available.
+ *
+ * Lookup cascade:
+ *   1. City-pair override (explicit route data)     → basis: "route-specific"
+ *   2. Regional range × distance scale              → basis: "distance-scaled"
+ *   3. Regional range (no coordinates available)    → basis: "regional"
+ *   4. null if no data at all
+ *
+ * Pass originCode/destCode to enable distance scaling + city-pair lookup.
  */
-export function getDynamicRange(program, fromRegion, toRegion, cabin) {
+export function getDynamicRange(program, fromRegion, toRegion, cabin, originCode, destCode) {
   if (!program || !fromRegion || !toRegion || !cabin) return null;
+  const cab = String(cabin).toLowerCase();
+
+  // 1. City-pair override
+  if (originCode && destCode) {
+    const routeKey = rk(originCode.toUpperCase(), destCode.toUpperCase());
+    const override = cityPairOverrides[program]?.[routeKey];
+    if (override) {
+      const cell = override[cab] || (cab === "premium" ? override.economy : null);
+      if (cell) return { ...cell, basis: "route-specific" };
+    }
+  }
+
+  // 2 & 3. Regional range (with optional distance scaling)
   const programData = dynamicRanges[program];
   if (!programData) return null;
-  const key = pk(fromRegion, toRegion);
-  const routeData = programData[key];
+  const pairK = pk(fromRegion, toRegion);
+  const routeData = programData[pairK];
   if (!routeData) return null;
-  // Premium economy → fall back to economy range if not defined
+  const base = routeData[cab] || (cab === "premium" ? routeData.economy : null) || null;
+  if (!base) return null;
+
+  return { ...base, basis: "regional" };
+}
+
+/**
+ * Distance-scaled version. Called from awardEstimator.js which already imports
+ * greatCircleMiles. Returns the ranged result with basis set.
+ */
+export function getDynamicRangeScaled(program, fromRegion, toRegion, cabin, originCode, destCode, distanceMi) {
+  if (!program || !fromRegion || !toRegion || !cabin) return null;
   const cab = String(cabin).toLowerCase();
-  return routeData[cab] || (cab === "premium" ? routeData.economy : null) || null;
+
+  // 1. City-pair override
+  if (originCode && destCode) {
+    const routeKey = rk(originCode.toUpperCase(), destCode.toUpperCase());
+    const override = cityPairOverrides[program]?.[routeKey];
+    if (override) {
+      const cell = override[cab] || (cab === "premium" ? override.economy : null);
+      if (cell) return { ...cell, basis: "route-specific" };
+    }
+  }
+
+  const programData = dynamicRanges[program];
+  if (!programData) return null;
+  const pairK = pk(fromRegion, toRegion);
+  const routeData = programData[pairK];
+  if (!routeData) return null;
+  const base = routeData[cab] || (cab === "premium" ? routeData.economy : null) || null;
+  if (!base) return null;
+
+  // 2. Distance scaling
+  if (distanceMi && regionAvgDistanceMi[pairK]) {
+    const scale = distanceMi / regionAvgDistanceMi[pairK];
+    const scaled = scaleRange(base, scale, cab);
+    return { ...scaled, basis: "distance-scaled", distanceMi: Math.round(distanceMi) };
+  }
+
+  // 3. Unscaled regional fallback
+  return { ...base, basis: "regional" };
 }
 
 /**

@@ -1,7 +1,8 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState, useEffect, useCallback } from "react";
 import { allAirlines, pointValues } from "./data/transferPartners";
+import { airportList, displayName } from "./data/airports";
 import {
   Plane,
   Wallet,
@@ -98,6 +99,82 @@ function ValueStat({ label, value, sub, green }) {
       <p className="lab">{label}</p>
       <p className="num tnum">{value}</p>
       <p className="sub">{sub}</p>
+    </div>
+  );
+}
+
+// ── Airport searchable combobox ───────────────────────────────────────────────
+function AirportCombobox({ value, onChange, placeholder = "e.g. JFK" }) {
+  const [text, setText] = useState(value ? displayName(value) : "");
+  const [open, setOpen] = useState(false);
+  const [hi, setHi] = useState(0);
+  const wrapRef = useRef(null);
+  const listRef = useRef(null);
+
+  // Keep text in sync when external value changes (e.g. default state).
+  useEffect(() => {
+    if (value) setText(displayName(value));
+    else setText("");
+  }, [value]);
+
+  const filtered = useMemo(() => {
+    const q = text.toLowerCase().trim();
+    if (!q) return airportList.slice(0, 8);
+    return airportList.filter((a) => a.search.includes(q)).slice(0, 10);
+  }, [text]);
+
+  const select = useCallback((code) => {
+    onChange(code);
+    setText(displayName(code));
+    setOpen(false);
+    setHi(0);
+  }, [onChange]);
+
+  // Close on outside click.
+  useEffect(() => {
+    const handler = (e) => { if (wrapRef.current && !wrapRef.current.contains(e.target)) setOpen(false); };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, []);
+
+  const onKeyDown = (e) => {
+    if (!open) { if (e.key === "ArrowDown") { setOpen(true); setHi(0); } return; }
+    if (e.key === "ArrowDown") { e.preventDefault(); setHi((h) => Math.min(h + 1, filtered.length - 1)); }
+    else if (e.key === "ArrowUp") { e.preventDefault(); setHi((h) => Math.max(h - 1, 0)); }
+    else if (e.key === "Enter") { e.preventDefault(); if (filtered[hi]) select(filtered[hi].code); }
+    else if (e.key === "Escape") setOpen(false);
+  };
+
+  return (
+    <div className="cb-wrap" ref={wrapRef}>
+      <input
+        type="text"
+        className="cb-input"
+        placeholder={placeholder}
+        value={text}
+        autoComplete="off"
+        onChange={(e) => { setText(e.target.value); setOpen(true); setHi(0); }}
+        onFocus={() => setOpen(true)}
+        onKeyDown={onKeyDown}
+      />
+      <div ref={listRef} className={`cb-list${open && filtered.length ? " open" : ""}`}>
+        {filtered.length === 0 ? (
+          <p className="cb-empty">No airports found</p>
+        ) : (
+          filtered.map((a, i) => (
+            <div
+              key={a.code}
+              className={`cb-item${i === hi ? " hi" : ""}`}
+              onMouseDown={() => select(a.code)}
+              onMouseEnter={() => setHi(i)}
+            >
+              <span className="cb-code">{a.code}</span>
+              <span>{a.city}</span>
+              <span className="cb-name">{a.name} · {a.country}</span>
+            </div>
+          ))
+        )}
+      </div>
     </div>
   );
 }
@@ -413,23 +490,11 @@ export default function Page() {
                 </div>
 
                 <div className="route-grid">
-                  <Field label="From">
-                    <input
-                      className="input up"
-                      value={sOrigin}
-                      maxLength={3}
-                      placeholder="JFK"
-                      onChange={(e) => setSOrigin(e.target.value.toUpperCase())}
-                    />
+                  <Field label="From" hint="Type city or airport code">
+                    <AirportCombobox value={sOrigin} onChange={setSOrigin} placeholder="e.g. JFK — New York" />
                   </Field>
-                  <Field label="To">
-                    <input
-                      className="input up"
-                      value={sDest}
-                      maxLength={3}
-                      placeholder="LIS"
-                      onChange={(e) => setSDest(e.target.value.toUpperCase())}
-                    />
+                  <Field label="To" hint="Type city or airport code">
+                    <AirportCombobox value={sDest} onChange={setSDest} placeholder="e.g. LIS — Lisbon" />
                   </Field>
                 </div>
 
@@ -530,23 +595,11 @@ export default function Page() {
 
                 {/* Route — enables the award-quality baseline comparison */}
                 <div className="route-grid">
-                  <Field label="From (airport code)" hint="e.g. JFK, LAX, ORD">
-                    <input
-                      className="input up"
-                      value={mOrigin}
-                      maxLength={3}
-                      placeholder="JFK"
-                      onChange={(e) => setMOrigin(e.target.value.toUpperCase())}
-                    />
+                  <Field label="From" hint="Type city or airport code">
+                    <AirportCombobox value={mOrigin} onChange={setMOrigin} placeholder="e.g. JFK — New York" />
                   </Field>
-                  <Field label="To (airport code)" hint="e.g. LIS, LHR, NRT">
-                    <input
-                      className="input up"
-                      value={mDest}
-                      maxLength={3}
-                      placeholder="LIS"
-                      onChange={(e) => setMDest(e.target.value.toUpperCase())}
-                    />
+                  <Field label="To" hint="Type city or airport code">
+                    <AirportCombobox value={mDest} onChange={setMDest} placeholder="e.g. LIS — Lisbon" />
                   </Field>
                 </div>
 
@@ -864,8 +917,12 @@ function AwardQuality({ aq, program, origin, destination, cabin, quotedMiles }) 
         <>
           <p className="aq-row">
             <b>{program}</b> uses dynamic pricing — no fixed saver chart.{" "}
-            Historical observed range ({cabin}, {origin}→{destination}):{" "}
-            <b>~{fmt(aq.dynamicRange.low)}–{fmt(aq.dynamicRange.high)} miles</b>.
+            {aq.dynamicRange.basis === "route-specific"
+              ? `Route-specific data (${origin}→${destination}): `
+              : aq.dynamicRange.basis === "distance-scaled" && aq.dynamicRange.distanceMi
+              ? `${origin}→${destination} (~${aq.dynamicRange.distanceMi.toLocaleString()} mi, distance-scaled): `
+              : `Regional estimate (${origin}→${destination}): `}
+            <b>~{fmt(aq.dynamicRange.low)}–{fmt(aq.dynamicRange.high)} miles</b> historically.
             {aq.rangeClass && (() => {
               const rc = RANGE_CLASS_LABELS[aq.rangeClass];
               return rc ? (

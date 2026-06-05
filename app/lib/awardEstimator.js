@@ -11,7 +11,7 @@ import {
 } from "../data/awardCharts";
 import { greatCircleMiles } from "../data/airportCoords";
 import { awardPegCents, defaultAwardPegCents } from "../data/transferPartners";
-import { getDynamicRange, classifyVsRange } from "../data/dynamicRanges";
+import { getDynamicRangeScaled, classifyVsRange } from "../data/dynamicRanges";
 
 // Normalize cabin string to: economy | premium | business | first
 export function normalizeCabin(cabin) {
@@ -148,7 +148,8 @@ export function judgeAward({ program, origin, destination, cabin, quotedMiles, c
   if (chartClass === null) {
     const fromRegion = regionForAirport(origin);
     const toRegion   = regionForAirport(destination);
-    const dynamicRange = getDynamicRange(program, fromRegion, toRegion, cab);
+    const distanceMi = greatCircleMiles(origin, destination);
+    const dynamicRange = getDynamicRangeScaled(program, fromRegion, toRegion, cab, origin, destination, distanceMi);
     const rangeClass = dynamicRange ? classifyVsRange(quotedMiles, dynamicRange) : null;
     const alt = bestFixedAlt(program, origin, destination, cab, cashPrice, allPrograms);
     return {
