@@ -22,7 +22,7 @@
 // To add a live bonus, e.g.:  "Virgin Atlantic": { ratio: 1, bonus: 0.3, expires: "2026-07-15" }
 // ─────────────────────────────────────────────────────────────────────────────
 
-export const lastUpdated = "2026-05-31";
+export const lastUpdated = "2026-06-06";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // POINT VALUATIONS ($ per 1 bank point) — the opportunity cost of spending each
@@ -155,7 +155,7 @@ export const exciseFeeCap = 99;
 export const awardPegCentsAsOf = "2026-06-02";
 export const awardPegCents = {
   United: {
-    mid: 1.4, p25: 1.1, p75: 1.8,
+    mid: 1.35, p25: 1.1, p75: 1.7,
     sampleCount: 0,
     samplePeriod: null,
     sources: [],
@@ -214,7 +214,7 @@ export const awardPegCents = {
     lastRefreshed: "2026-06-02",
   },
   "Virgin Atlantic": {
-    mid: 1.5, p25: 1.2, p75: 1.9,
+    mid: 1.3, p25: 1.0, p75: 1.7,
     sampleCount: 0,
     samplePeriod: null,
     sources: [],
@@ -476,7 +476,7 @@ export const programs = {
       Delta: { ratio: 1, feePerPoint: exciseFeePerPoint, note: "Amex→Delta carries a ~$0.0006/pt excise-tax fee." },
       Emirates: { ratio: 0.8 },
       Etihad: { ratio: 1, note: "Amex–Etihad partnership ENDS June 30, 2026." },
-      "Flying Blue": { ratio: 1 },
+      "Flying Blue": { ratio: 1, bonus: 0.25, expires: "2026-06-30" },
       Hawaiian: { ratio: 1, feePerPoint: exciseFeePerPoint },
       Iberia: { ratio: 1 },
       JetBlue: { ratio: 0.8, feePerPoint: exciseFeePerPoint, note: "Amex→JetBlue carries a small transfer fee." },
@@ -526,7 +526,7 @@ export const programs = {
       "Flying Blue": { ratio: 1 },
       JetBlue: { ratio: 1 },
       Qantas: { ratio: 1 },
-      Qatar: { ratio: 1 },
+      Qatar: { ratio: 1, bonus: 0.3, expires: "2026-06-30" },
       Singapore: { ratio: 1 },
       "Thai Airways": { ratio: 1 },
       Turkish: { ratio: 1 },
